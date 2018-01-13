@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>增加文件信息@xi</title>
+    <!-- Bootstrap 核心 CSS文件 -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <!--<script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.js"></script>-->
+    <!--<link href="/static/css/isearch/isearchForm@xi.css" type="text/css" rel="stylesheet">-->
+    <link href="/practice/css/isearchForm@xi.css" type="text/css" rel="stylesheet" charset="UTF-8">
+
+</head>
+<body>
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-12">
+            <nav class="navbar navbar-default" role="navigation">
+                <div class="navbar-header">
+
+                    <button type="button" class="navbar-toggle" data-toggle="collapse"
+                            data-target="#bs-example-navbar-collapse-1">
+                        <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span
+                            class="icon-bar"></span><span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Brand</a>
+                </div>
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li class="active">
+                            <a href="#">Link</a>
+                        </li>
+                        <li>
+                            <a href="#">Link</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown<strong
+                                    class="caret"></strong></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="#">Action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Another action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Something else here</a>
+                                </li>
+                                <li class="divider">
+                                </li>
+                                <li>
+                                    <a href="#">Separated link</a>
+                                </li>
+                                <li class="divider">
+                                </li>
+                                <li>
+                                    <a href="#">One more separated link</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <form class="navbar-form navbar-left" role="search">
+                        <div class="form-group">
+                            <input class="form-control" type="text">
+                        </div>
+                        <button type="submit" class="btn btn-default">
+                            Submit
+                        </button>
+                    </form>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>
+                            <a href="#">Link</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown<strong
+                                    class="caret"></strong></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="#">Action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Another action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Something else here</a>
+                                </li>
+                                <li class="divider">
+                                </li>
+                                <li>
+                                    <a href="#">Separated link</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <form class="form-horizontal" id="form" name="mytest" method="get" action="/x">
+                <label for="keyword" class="control-label">Search What you want</label>
+                <br><br>
+                <div class="form-group">
+                    <div class="col-md-6">
+                        <!--<div class="col-md-offset-1 col-md-6">-->
+                        <input name="keyword" class="form-control col-md-6" id="keyword" placeholder="Input Keyword">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-default">Go</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <br><br>
+    <div class="row">
+        <div class="col-md-12">
+            <!--<div id="thin-padding" class="jumbotron code-scroll">-->
+            <div id="thin-padding" class="jumbotron">
+                <!--用于存储 分词 后的 关键词，客户端 关键词着色 时js取用-->
+                <div id="keywords">
+                    {% for k in keywords %}
+                    <p>{{ k }}</p>
+                    {% endfor %}
+                </div>
+                {% for fmate in fmates %}
+                <!--/*width=800,给定宽度也是关键之一*/-->
+                <table id="T{{ loop.index }}" class="rs-table">
+                    <tbody>
+                    <tr>
+                        <td class="blob-num">
+                            <div>文件名：</div>
+                        </td>
+                        <td class="blob-code file-inner">   代码搜索</td>
+                        <td class="blob-code file-inner">   代码搜索</td>
+                    </tr>
+                    {% for line in fmate %}
+                    <tr>
+                        <td id="L{{ loop.index }}" class="blob-num">{{ line['flid'] }}</td>
+                        <td id="LC{{ loop.index }}" class="blob-code code-inner">{{ line['line'] }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <li style="font-size:25px;color:red">
+                <p>结合javascript解决了table元素越界问题 长行自动省略号</p>
+                <p>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>></p>
+                <p>
+                    仿照Github代码显示窗口改进搜索结果显示页面
+                </p>
+                <p>
+                    解决三个问题：
+                    前端空格不显示，长行自动变滚动条,关键词着重显示或者特殊背景
+                </p>
+            </li>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.js"></script>
+<script src="https://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="/js/isearchForm@xi.js"></script>
+</body>

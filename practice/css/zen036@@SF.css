@@ -1,0 +1,293 @@
+body {
+	margin: 0px;
+}
+
+body {
+    font: 8pt/16pt verdana, geneva, arial,sans serif;
+    color: #000;
+    background: #fff url(/static/ZenCss/036/lbg.gif) repeat-y;
+}
+.intro {
+	margin:0;
+	padding:0;
+	margin-top:20px;
+	width:760px;
+	background: transparent url(/static/ZenCss/036/lsh.gif) no-repeat 687px 231px;
+}
+
+.page-wrapper{
+	border-top:1px solid #230;
+	border-right: 1px solid #230;
+	width:760px;
+	margin: 0px;
+	padding: 0px;
+	background: transparent url(/static/ZenCss/036/topbg.gif) repeat-x;
+
+}
+header {
+	position:absolute;
+	left:0;
+	width: 355px;
+	height:201px
+
+	}
+
+/*SF*/
+/*这里我决定用img标签替换原有的h1*/
+/*header h1 {
+    /*background: transparent url(/static/ZenCss/036/centerpiece.jpg) no-repeat;*/
+    /*margin-top: 0px;
+	width: 355px;
+	height: 201px;
+	float: left;*/
+    /*这里存在一个技巧：text_indent 控制的是h1内容的缩进，设置为100%会使内容远远超出h1的显示区域
+        同时，设定white-space为nowrap，强制不会进行换行，再配合overflow设定为hidden，超出显示的内容区
+        就不可见了。
+        综上所述，就是把本来要显示的内容赶出去并隐藏，只剩下背景图片。
+        ??为什么不直接用img标签呢？因为css-zen这个项目默认是不能更改文档结构的,所以无法换上一个img标签。*/
+	/*text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}*/
+header img {
+    display: block;
+    margin-top: 0px;
+    width: 355px;
+    height: 201px;
+    float: left;
+}
+
+header h2 {
+    display: none;
+}
+
+.summary{
+	margin: 0 0 0 355px;
+	width:332px;
+	height: 200px;
+	background: #ABBC47 url(/static/ZenCss/036/quicksumbg.gif);
+	border-right:1px solid #ABBC47;
+	border-top:1px solid #ABBC47;
+}
+
+/*SF
+.summary p:first-child {
+	margin: 100px 30px 2px;
+}
+*/
+
+.summary p:first-child {
+	font: bold 11px/14px arial,verdana, sans serif;
+	color:#fff;
+	padding: 100px 30px 2px;
+}
+
+.summary p:last-child {
+	position: absolute;
+	left: 0px;
+	top:230px;
+	font: 10px verdana, arial, sans serif;
+	color:#fff;
+	margin:0 30px;
+
+}
+
+.summary p:last-child a, footer a{
+	color:#fff;
+}
+
+.summary p:last-child a:hover, footer a:hover{
+	color:#230;
+	background-color:#fff;
+	text-decoration:none;
+}
+
+.preamble{
+	padding:50px 30px 30px 30px;
+	margin:30px 0 0 355px;
+	border-width:0 0 1px 1px;
+	border-color:#fff #ddd;
+	border-style:solid;
+	text-align:left;
+	background: transparent url(/static/ZenCss/036/endsection.gif) no-repeat bottom center;
+
+	width:343px;
+}
+
+.preamble h3{
+	background: transparent url(/static/ZenCss/036/h3preamble.gif) no-repeat bottom left;
+	margin: 0px;
+	width: 270px;
+	height: 36px;
+	border-bottom:1px solid #ddd;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.preamble p, .explanation p, .benefits p, .participation p, .requirements p{
+	text-align:justify;
+}
+/*根据实际测量，用户代理对nth-child的反应如下：
+	.preamble p:nth-child(2) 指的是类属性包含.preamble的元素的所有后代元素中，
+		选择p元素，并且p元素还必须是其父元素的第二个子元素。*/
+.preamble p:nth-child(2){
+	width: 220px;
+}
+
+/* visually footer is moved up to be with the intro stuff */
+
+footer{
+	position:absolute;
+	left:0;
+	top:230px;
+	font: 10px verdana, arial, sans serif;
+	color:#fff;
+	margin:0 30px 0 400px;
+	width:340px;
+	text-align:right;
+}
+
+
+.supporting {
+	margin: 0px 0px 0px 355px;
+	padding: 50px 30px 0 30px;
+	border-width: 0 0 1px 1px;
+	border-color: #fff #ddd;
+	border-style: solid;
+	width: 343px;
+}
+
+.explanation, .benefits, .participation, .requirements {
+	padding:0 0 20px 0;
+	margin-bottom:20px;
+	text-align:left;
+	background: transparent url(/static/ZenCss/036/endsection.gif) no-repeat bottom center;
+}
+
+p{
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
+p:nth-child(2){
+	margin-top:26px;
+}
+
+.summary p:first-child{
+	margin-top:0;
+}
+
+/* use images to display headers */
+
+.explanation h3{
+	background: transparent url(/static/ZenCss/036/h3explanation.gif) no-repeat bottom left;
+}
+.benefits h3{
+	background: transparent url(/static/ZenCss/036/h3benefits.gif) no-repeat bottom left;
+}
+.participation h3{
+	background: transparent url(/static/ZenCss/036/h3participation.gif) no-repeat bottom left;
+}
+.requirements h3{
+	background: transparent url(/static/ZenCss/036/h3requirements.gif) no-repeat bottom left;
+}
+
+.explanation h3, .benefits h3, .participation h3, .requirements h3 {
+	margin: 0px;
+	min-width: 200px;
+	height: 36px;
+	border-bottom:1px solid #ddd;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.sidebar{
+	position:absolute;
+	left:0px;
+	top:252px;
+	width:355px;
+	padding:50px 30px 0 130px;
+	background: transparent url(/static/ZenCss/036/lsh.gif) no-repeat top left;
+	voice-family: "\"}\"";
+	voice-family: inherit;
+	width:195px;
+}
+
+.sidebar .wrapper{
+	padding: 0;
+	overflow: hidden;
+}
+
+/* first the list of designs */
+.design-selection ul {
+	margin: 10px 0 0 0;
+    /*SF经过用户代理测试，当padding属性小于等于10px时，li元素前面的小圆点就不会显示出来了*/
+	padding: 10px;
+}
+
+.design-selection li {
+	line-height: 2.5ex;
+	list-style-type: none;
+	display: block;
+	padding: 5px 0px 5px 25px;
+	margin: 5px 0;
+	border-bottom:1px solid #eee;
+	background: transparent url(/static/ZenCss/036/bullet.gif) no-repeat 0px 7px;
+}
+
+/* use images for headers */
+
+h3.select{
+	background: transparent url(/static/ZenCss/036/h3select.gif) no-repeat bottom left;
+}
+h3.archives{
+	background: transparent url(/static/ZenCss/036/h3archives.gif) no-repeat bottom left;
+}
+h3.resources{
+	background: transparent url(/static/ZenCss/036/h3resources.gif) no-repeat bottom left;
+}
+
+h3.select, h3.archives, h3.resources {
+	margin: 0px;
+	min-width: 200px;
+	height: 36px;
+	border-bottom:1px solid #ddd;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+/* then the lists of general info etc */
+
+.design-archives ul, .zen-resources ul {
+	margin: 10px 0 0 0;
+	padding: 10px;
+}
+
+.design-archives li, .zen-resources li {
+	list-style-type: none;
+	display: block;
+	padding: 0px;
+	padding: 0px 0px 0px 25px;
+	margin: 0;
+	background: transparent url(/static/ZenCss/036/bullet2.gif) no-repeat 2px 7px;
+}
+
+/* some generic stuff */
+/*---------------------------------------------------*/
+
+a {
+	color:#230;
+}
+
+a:visited {
+	color:#672;
+}
+
+a:hover {
+	color:#ABBC47;
+}

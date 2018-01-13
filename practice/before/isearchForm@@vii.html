@@ -1,0 +1,26 @@
+<html>
+<head>
+    <script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.js"></script>
+    <script type="text/javascript">
+        $( function () {
+            //下面给form 绑定 submit 事件是有效的
+//            $('#testForm').submit( function (event) {
+//                alert('submit!');
+//            });
+            //下面给button绑定 submit 事件是无效的
+            $('button').submit( function (event) {
+                alert('button submit!');
+            });
+            //下面给button绑定 click 事件是有效的
+            $('button').click( function (event) {
+                alert('button click!');
+            });
+        });
+    </script>
+</head>
+<body>
+    <form id="testForm">
+        <button type="submit">Submit</button>
+        .........
+    </form>
+</body>

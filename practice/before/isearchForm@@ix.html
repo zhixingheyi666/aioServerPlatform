@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>isearch@ix</title>
+    <!-- Bootstrap 核心 CSS文件 -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <!--<script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.js"></script>-->
+
+    <style>
+        .rs-table {
+            /*table-layout设置为fixed也是实现table不超越父元素界限关键之一*/
+            table-layout: fixed;
+            margin-right: 0px;
+            margin-left: 0px;
+            margin-top: 2.7px;
+            margin-bottom: 2.7px;
+            background-color: #204B56;
+        }
+
+        #thin-padding {
+            background-color: #1C1F28;
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+
+        .blob-num {
+            width: 3%;
+            min-width: 50px;
+            padding-right: 10px;
+            padding-left: 10px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 12px;
+            line-height: 20px;
+            color: rgb(221, 215, 163);
+            /*color: rgba(27, 31, 35, 0.3);*/
+            text-align: right;
+            white-space: nowrap;
+            vertical-align: top;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .blob-code {
+            position: relative;
+            padding-right: 10px;
+            padding-left: 10px;
+            line-height: 20px;
+            vertical-align: top;
+        }
+
+        .code-inner {
+            /*想要隐藏过长的行，可以给table设置width=800类似的定宽*/
+            /*这两者组合是关键之一*/
+            text-overflow: ellipsis;
+            overflow: hidden;
+            word-wrap: normal;
+            white-space: pre;
+            width: 100%;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 14px;
+            color: rgb(181, 194, 217);
+        }
+
+        .code-scroll {
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-12">
+            <nav class="navbar navbar-default" role="navigation">
+                <div class="navbar-header">
+
+                    <button type="button" class="navbar-toggle" data-toggle="collapse"
+                            data-target="#bs-example-navbar-collapse-1">
+                        <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span
+                            class="icon-bar"></span><span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Brand</a>
+                </div>
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li class="active">
+                            <a href="#">Link</a>
+                        </li>
+                        <li>
+                            <a href="#">Link</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown<strong
+                                    class="caret"></strong></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="#">Action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Another action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Something else here</a>
+                                </li>
+                                <li class="divider">
+                                </li>
+                                <li>
+                                    <a href="#">Separated link</a>
+                                </li>
+                                <li class="divider">
+                                </li>
+                                <li>
+                                    <a href="#">One more separated link</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <form class="navbar-form navbar-left" role="search">
+                        <div class="form-group">
+                            <input class="form-control" type="text">
+                        </div>
+                        <button type="submit" class="btn btn-default">
+                            Submit
+                        </button>
+                    </form>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>
+                            <a href="#">Link</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown<strong
+                                    class="caret"></strong></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="#">Action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Another action</a>
+                                </li>
+                                <li>
+                                    <a href="#">Something else here</a>
+                                </li>
+                                <li class="divider">
+                                </li>
+                                <li>
+                                    <a href="#">Separated link</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <li style="font-size:25px;color:red">
+                <p>结合javascript解决了table元素越界问题 长行自动省略号</p>
+                <p>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>></p>
+                <p>
+                    仿照Github代码显示窗口改进搜索结果显示页面
+                </p>
+                <p>
+                    解决三个问题：
+                    前端空格不显示，长行自动变滚动条,关键词着重显示或者特殊背景
+                </p>
+            </li>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-10">
+            <!--<div id="thin-padding" class="jumbotron code-scroll">-->
+            <div id="thin-padding" class="jumbotron">
+                {% for fmate in fmates %}
+                <!--/*width=800,给定宽度也是关键之一*/-->
+                <table class="rs-table">
+                    <tbody>
+                    {% for line in fmate %}
+                    <tr>
+                        <td class="blob-num">{{line['flid']}}</td>
+                        <td class="blob-code code-inner">{{line['line']}}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-2">
+            <form id="form" name="mytest" method="get" action="/">
+                <div class="form-group">
+                    <label for="exampleInputEmail1">Email address</label>
+                    <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Email">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">Password</label>
+                    <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputFile">Input File</label>
+                    <input type="file" id="exampleInputFile">
+                    <p class="help-block">Example block-level help text here.</p>
+                </div>
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox"> Check me out
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3">
+            <h4>isearch</h4>
+        </div>
+        <div class="col-md-9 hidden-xs">
+            <p>The most popular front-end framework for developing responsive, mobile first projects on the web.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <p>2、以“项目建设为中心”！根据技能树和当下需要，每段时间选择一个项目实现之。
+                根据经验：项目可以分为许多小的分目标，逐个学习并实现分目标，最终完整实现整个项目。
+                突破项目中新知识点即是学习运用新知识的过程。
+                温故知新：项目间隙，看以前的旧项目，和做旧项目时的相关网页和文档
+                可以极大巩固所学，学习做到了目标精准，有的放矢，同时刺激新思维</p>
+        </div>
+        <!--<div class="col-md-4 col-lg-12">-->
+        <!--当row中的每个div都设置为col-*-12时，效果是每个div占据一整行。-->
+        <!--<div class="col-md-4 col-lg-3">-->
+        <div class="col-md-4">
+            <p>
+                》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》$
+                conn = pyodbc.connect( r'driver={SQL Server}; server=localhost; database=easybook; user = saa; password
+                = sa' )
+                conn = pyodbc.connect(r'driver={SQL Server};server=localhost;database=easybook;uid=sa;pwd=sa')
+
+                >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>...
+            </p>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.js"></script>
+<script src="https://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+    //    通过javascript脚本实现获取table的父元素的宽度。
+    $(window).resize(function () {
+        var twidth = $('#thin-padding').width();
+        $('#thin-padding table').width(twidth);
+    });
+</script>
+<script type="text/javascript">
+    $(document).on('ready', function () {
+
+        var twidth = $('#thin-padding').width();
+        $('#thin-padding table').width(twidth);
+
+        $('.col-md-4 form').on('submit', function (event) {
+            console.log(event.type);
+            alert('(Bubble stage)The event type of this Form:  ' + event.type);
+            alert('succeed!');
+        });
+    });
+</script>
+<script>
+    //    $('#form').on('submit', function(e) {
+    //        e.preventDefault();
+    //        var data = $('form').serialize();
+    //        alert('Form will be submitted');
+    //        jQuery.get('/', data );
+    //    });
+    //测试1，OK
+    //            $('button').on('click',function (event) {
+    //                event.preventDefault();
+    //                console.log(event.type);
+    //                alert(event.type);
+    //                alert('submit!');
+    //            });
+    //测试2，OK
+    //            $('#testForm').on('click',function (event) {
+    //                event.preventDefault();
+    //                console.log(event.type);
+    //                alert(event.type);
+    //                alert('submit!');
+    //            });
+    //测试3，OK
+
+    //        $('.col-md-4 form [type=submit]').click(function (event) {
+    //            alert('(Bubble stage)The event type of this Button:  ' + event.type);
+    //            alert('You have clicked this submit button and the Form will be submitted soon.')
+    //        });
+
+    //        changeStatus = function (event) {
+    //            alert(event.type + ' event on Checkbox has being triggerd.')
+    //        }
+    //        $('[type=checkbox]').click(function (event) {
+    //            changeStatus(event);
+    //        });
+
+</script>
+</body>

@@ -45,6 +45,7 @@ def create_pool(loop, **kw):
     # 暂时用所要连接的数据库的名字命名不同的连接池，以后再完善命名方案
     __poollist[kw['database']] = ipool
 
+# 函数的返回rs是一个list，这个list的每个元素是一个dict，对应于数据库表中的一行
 @asyncio.coroutine
 def select( sql, args, size = None, database = 'excodout'):
     log(sql, args)

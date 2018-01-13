@@ -1,0 +1,70 @@
+<!--两个container测试-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>isearch@iv</title>
+    <!-- Bootstrap 核心 CSS文件 -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <!--jquery 核心 js文件-->
+    <script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="jumbotron">
+                {% for fmate in fmates %}
+                <li>
+                    <p>{{fmate['namepath']}}</p>
+                </li>
+                {% endfor %}
+                <p>{{testtmp}}</p>
+            </div>
+        </div>
+        <div id="form-container" class="col-md-4">
+            <form>
+                <div class="form-group">
+                    <label>Search Words:</label>
+                    <input id="keyword" class="from-control" placeholder="enter some keywords" type="email"/>
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputPassword1">Password</label>
+                    <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputFile">File input</label>
+                    <input type="file" id="exampleInputFile">
+                    <p class="help-block">Example block-level help text here.</p>
+                </div>
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox"> Check me out
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-default">Submit</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+<!--<script src="https://cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>-->
+<!--<script src="https://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>-->
+<script type="text/javascript">
+    $(function () {
+//    下面的弹出框是可以正常显示的
+        $('form').submit(function () {
+            alert('test submit');
+        });
+
+        $('button').click(function (event) {
+            alert('test click');
+            //加上 下面的 语句，则上面的'test submit'不会显示
+            //event.preventDefault();
+        });
+    });
+</script>
+</body>
+</html>

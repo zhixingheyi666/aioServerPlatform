@@ -116,7 +116,7 @@ def response_factory(app, handler):
     @asyncio.coroutine
     def response(request):
         # ipdb.set_trace()
-        logger.info('Respone handler...')
+        logger.info('Respone handler...--> respone_factory')
         rr = yield from handler(request)
         if isinstance(rr, web.StreamResponse):
             return rr
@@ -138,9 +138,9 @@ def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
-                # r['__user__'] = request.__user__
+                rr['__user__'] = request.__user__
                 # self#测试用添加代码
-                rr['__user__'] = 'Mytest'
+                # rr['__user__'] = 'Mytest'
                 resp = web.Response(body=app['__templating__'].get_template(template).render(**rr).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
@@ -196,13 +196,18 @@ def init(loop):
 
     # add_routes第二个参数是模块名，把模块中所有函数处理后添加给app
     add_routes(app, 'handlers')
+
+    # # 迭代开发，更改原app的html文件的路径，故在handlersI中更改原handlers中的路径参数，
+    # # add_routes(app, 'handlersI')
+
     # isearch@i【调试】通过ishandlers给app添加临时路径
     add_routes(app, 'ishandlers')
     add_static(app)
 
+    host = ['127.0.0.1']
     hostI = ['192.168.0.104', '127.0.0.1']
     hostII = ['192.168.0.106', '127.0.0.1']
-    srv = yield from loop.create_server(app.make_handler(), hostI, 9999)
+    srv = yield from loop.create_server(app.make_handler(), host, 9999)
     # srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9999)
     logger.info('Server started at http://127.0.0.1:9999...')
     return srv

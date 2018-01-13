@@ -123,7 +123,7 @@ def index(*, page = '1'):
         # blogs = yield from Blog.findAll(orderBy = 'created_at desc', limit = (page.offset, page.limit))
         blogs = yield from Blog.findAll(orderBy = 'created_at', limit = (page.offset, page.limit))
     return {
-            '__template__':'blogs.html',
+            '__template__':'/former/blogs.html',
             'page':page,
             'blogs':blogs
             }
