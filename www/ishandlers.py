@@ -51,14 +51,14 @@ def isindexCss(css):
 @get('/tt')
 def isindexTtt():
     result = [[{'flid': 0, 'line': '<span style="color:red">查询参数错误: </span> '}]]
-    return {'__template__': 'zen036@Tt.html', 'fmates': result}
+    return {'__template__': 'ZenCss@@Bk.html', 'fmates': result}
 
 @get('/t')
 def isindexTt():
     result = [[{'flid': 0, 'line': '<span style="color:red">查询参数错误: </span> '}]]
     # return {'__template__': 'isearchForm@Tt.html', 'fmates': result}
-    # return {'__template__': 'zen036@Tt.html', 'fmates': result}
-    return {'__template__': 'zen036@@SF.html', 'fmates': result}
+    # return {'__template__': 'ZenCss@@Bk.html', 'fmates': result}
+    return {'__template__': 'ZenCss@Research.html', 'fmates': result}
 
 
 @get('/x')
