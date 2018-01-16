@@ -4,11 +4,12 @@
 __author__ = 'Master Wang'
 
 import asyncio, aiomysql, pdb
+
+from mylog import logger
 import sys
-sysFc = 'D:\\python_learn\\sysFc'
-sys.path.append(sysFc)
-from logSf10 import crLog
-logger = crLog(fname = 'D:\桌面\exCodOut.log')
+# sysFc = 'D:\\python_learn\\sysFc'
+# sys.path.append(sysFc)
+
 #logger = crLog(fname = 'D:\桌面\orm.log')
 #from logSf10 import logger 
 #logger = logger 

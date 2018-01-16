@@ -1,0 +1,24 @@
+��Ҫ˵����
+	���Ҫʹ�ñ�Ŀ¼�µ��Զ���Ĺ���ģ�飬�뽫��Ŀ¼����� Ĭ��ģ������·��
+
+import sys
+sysSf = 'D:\\python_learn\\sysFc'
+sys.path.append(sysSf)
+
+try:
+	logger.info('sys.path ---> ' + str(sys.path))
+except:
+	print('sys.path ---> ' + str(sys.path))
+
+
+# 为自定义的模块添加搜索路径
+"""
+    下面这段代码要求自定义模块文件夹，也即sysFc，与本文件(app.py)的父目录在同一文件夹下面
+"""
+# 本句 os.path.realpath( sys.argv[0] ) 获取本文件所在的实际完整路径，然后分割取第一部分，去除文件名，仅留下路径
+ScriptPath = os.path.split( os.path.realpath( sys.argv[0] ) )[0]
+# 本句根据前面的路径获取父路径的父路径(也就是sysFc的父路径)
+ScriptPath = os.path.abspath(os.path.join(ScriptPath,".."))
+# 本句组合得到sysFc路径，也就是自定义模块所在的路径
+sysFuncPath = os.path.abspath(os.path.join(ScriptPath,"sysFc"))
+sys.path.append(sysFuncPath)
