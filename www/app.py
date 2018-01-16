@@ -6,13 +6,26 @@ __athor__ = 'Master Wang'
 async web application
 """
 
-import asyncio, os, json, time
+import asyncio, os, json, time, sys
 from datetime import datetime
 
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
+# 为自定义的模块添加搜索路径
+"""
+    下面这段代码要求自定义模块文件夹，也即sysFc，与本文件(app.py)的父目录在同一文件夹下面
+"""
+# 本句 os.path.realpath( sys.argv[0] ) 获取本文件所在的实际完整路径，然后分割取第一部分，去除文件名，仅留下路径
+ScriptPath = os.path.split( os.path.realpath( sys.argv[0] ) )[0]
+# 本句根据前面的路径获取父路径的父路径(也就是sysFc的父路径)
+ScriptPath = os.path.abspath(os.path.join(ScriptPath,".."))
+# 本句组合得到sysFc路径，也就是自定义模块所在的路径
+sysFuncPath = os.path.abspath(os.path.join(ScriptPath,"sysFc"))
+sys.path.append(sysFuncPath)
+
 from config import configs
+from mylog import *
 
 import orm
 from coroweb import add_routes, add_static
@@ -22,16 +35,12 @@ from handlers import cookie2user, COOKIE_NAME
 # self#测试用临时添加语句
 import ipdb
 from IPython import embed
-# 为自定义的模块添加搜索路径
-import sys
 
-sysFc = 'D:\\python_learn\\sysFc'
-sys.path.append(sysFc)
 
-from logSf10 import crLog
+# from logSf10 import crLog
 
-logger = crLog(fname='D:\桌面\exCodOut.log')
-logger.info('Succeed defination logger')
+# logger = crLog( fname= os.path.abspath(os.path.join(ScriptPath,"exCodOut.log")) )
+# logger.info('Succeed defination logger')
 
 
 def init_jinjia2(app, **kw):
@@ -192,7 +201,9 @@ def init(loop):
     # self#
     # init_jinjia2(app, filters=dict(datetime=datetime_filter))
     # isearch@i【调试】临时传入【jinja2】 template模板的临时路径
-    init_jinjia2(app, path="D:\\Pycharm\\bootstrap_ln\\practice", filters=dict(datetime=datetime_filter))
+    # init_jinjia2(app, path="D:\\Pycharm\\bootstrap_ln\\practice", filters=dict(datetime=datetime_filter))
+    tempPath = os.path.abspath(os.path.join(ScriptPath, "practice"))
+    init_jinjia2(app, path=tempPath, filters=dict(datetime=datetime_filter))
 
     # add_routes第二个参数是模块名，把模块中所有函数处理后添加给app
     add_routes(app, 'handlers')

@@ -11,13 +11,14 @@ import json, inspect, functools
 import pdb
 
 #为自定义的模块添加搜索路径
-import sys
-sysFc = 'D:\\python_learn\\sysFc'
-sys.path.append(sysFc)
+# import sys
+# sysFc = 'D:\\python_learn\\sysFc'
+# sys.path.append(sysFc)
 
-from logSf10 import crLog
-logger = crLog(fname = 'D:\桌面\exCodOut.log')
-logger.info('Succeed')
+# from logSf10 import crLog
+# logger = crLog(fname = 'D:\桌面\exCodOut.log')
+# logger.info('Succeed')
+from mylog import *
 
 class Page(object):
     '''

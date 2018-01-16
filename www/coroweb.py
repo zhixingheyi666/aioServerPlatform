@@ -4,11 +4,8 @@ __author__ = 'Master Wang'
 
 import sys, ipdb
 
-sysFc = 'D:\\python_learn\\sysFc'
-sys.path.append(sysFc)
-from logSf10 import crLog
+from mylog import *
 
-logger = crLog(fname='D:\桌面\exCodOut.log')
 # logger = crLog(fname = 'D:\桌面\coroweb.log')
 # from logSf10 import logger
 # logger = logger
@@ -177,9 +174,13 @@ def add_static(app):
     logger.info('Add static %s => %s' % ('/static/', path))
 
     # 调试js和css方便临时添加静态路径
-    pathT = 'D:\\Pycharm\\bootstrap_ln\\practice'
-    app.router.add_static('/practice/', pathT)
-    logger.info('Add static %s => %s' % ('/practice/', pathT))
+    # pathT = 'D:\\Pycharm\\bootstrap_ln\\practice'
+    # app.router.add_static('/practice/', pathT)
+    # 本句根据前面的路径获取父路径的父路径(也就是www的父路径)
+    tempPath = os.path.abspath(os.path.join(path, "../.."))
+    tempPath = os.path.abspath(os.path.join(tempPath, "practice"))
+    app.router.add_static('/practice/', tempPath)
+    logger.info('Add static %s => %s' % ('/practice/', tempPath))
 
 
 def add_route(app, fn):
