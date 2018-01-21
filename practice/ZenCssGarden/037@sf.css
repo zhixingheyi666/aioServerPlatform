@@ -1,0 +1,423 @@
+body {
+	width: 2048px;
+	margin: 0;
+	padding: 0;
+	color: #888398;
+	background-color: #fff;
+
+    /*body应用背景的好处是可以贯通整个视窗，不管body实际height*/
+    /*background-image: url(/static/ZenCss/037/bg_body.jpg);*/
+    /*@Q01@下面本意让灰色背景位于body的右侧，让最右侧(主要是siderbar)有个灰色背景。实际效果是如果body需要scroll，
+    	那么背景图像会位于视窗右侧(如果算上滚动部分，并不是body最右侧)
+    	糟糕的是，滚动时，这个灰色背景会随着滚动,而不是一直处于最右侧
+    	@??猜想@
+    		当使用right属性时，不管其参照的是什么包含块，其右侧起始位置不会在视窗可显示区域的右边。
+    		这里的背景图像的right属性就出现了这个特点
+    	*/
+	/*background-position: right;*/
+	/*background-repeat: repeat-y;*/
+
+	font: 11px/1.5 Arial, Verdana, sans-serif;
+
+    /*SF*/
+    /*为了能使body成为extra6的包含块，避免视窗成为extra6的包含块*/
+	position: relative;
+
+}
+
+/*SF*/
+/*解决Q01*/
+body#css-zen-garden>div.extra6 {
+	position: absolute;
+    right:0px;
+
+    /*为了使背景能够贯通整个视窗*/
+    top:-30px;
+	bottom:-800px;
+
+	width: 220px;
+	z-index: -1;
+    /*background-color: #7D775C;*/
+	background-image: url(/static/ZenCss/037/bg_body.jpg);
+	/*text-indent: 100%;*/
+	/*white-space: nowrap;*/
+	/*overflow: hidden;*/
+	/*background-image: url(/static/ZenCss/037/bg_body.jpg);*/
+	/*background-repeat: repeat-y;*/
+}
+/*
+*/
+
+/* Different behaviour of the lady. Just a compromise for IE */
+
+/*
+div.extra2 {
+	background-image: url(/static/ZenCss/037/bg_face_ie.jpg);
+	background-repeat: no-repeat;
+	background-position: left bottom;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 600px;
+	width: 265px;
+}
+*/
+
+ /*And now the cool stuff, hiding from IE with child-selectors */
+
+body#css-zen-garden>div.extra2 {
+	background-image: url(/static/ZenCss/037/bg_face.jpg);
+	background-repeat: no-repeat;
+	background-position: left bottom;
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	height: 594px;
+	width: 205px;
+	z-index: 2;
+} 
+
+/* Using Geckos capability of PNG transparency to create the smooth scrolling border,
+when the screen is scrolled and the content vanishes to the left */
+
+body#css-zen-garden>div.extra3 {
+	position: fixed;
+	left: 0;
+	top: 0;
+	height: 100%;
+	z-index: 1;
+	background-image: url(/static/ZenCss/037/bg_white.png);
+	width: 225px;
+}
+
+/* The Header, using the "old":)) FIR-method */
+
+header {
+	position: relative;
+	left: 220px;
+	width: 1828px;
+}
+
+header h1 {
+	width: 493px;
+	height: 83px;
+	margin: 20px 0 0;
+	background-image: url(/static/ZenCss/037/csszengarden.jpg);
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+header h2 {
+	width: 1826px;
+	height: 27px;
+	background-image: url(/static/ZenCss/037/thebeautyofcssdesign.jpg);
+	background-position: right;
+	background-repeat: no-repeat;
+	margin-top: -10px;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.summary {
+	position: absolute;
+	width: 1300px;
+	left: 228px;
+	top: 78px;
+	letter-spacing: 0.1em;
+	color: #A5A3B5;
+	background-color: transparent;
+}
+
+/* Have the summary displayed in a single line */
+
+div.summary p:last-child, div.summary p:first-child {
+	display: inline;
+	margin: 0;
+}
+
+/*adding a border */
+
+div.extra1 {
+	position: absolute;
+	left: 225px; 
+	top: 70px;
+	height: 1px;
+	width: 1823px;
+	background-color: #A5A3B5;
+	color: inherit;
+}
+
+
+/* The main content. All positioned absolutely
+-----------------------------------------------
+ The text-links */
+
+a:link, a:visited {
+	color: #A52A2A;
+	background-color: transparent;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+/* The Preamble */
+
+div.preamble {
+	position: absolute;
+	left: 375px;
+	top: 140px;
+	width: 200px;
+	text-align: justify;
+}
+
+div.preamble h3 {
+	width: 200px;
+	height: 25px;
+	background-image: url(/static/ZenCss/037/theroad.jpg);
+	margin: 0 0 0.5em;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.preamble p {
+	margin: 0 0.5em 0.5em;
+}
+
+/* Supporting Text
+--------------------------------------*/
+
+div.explanation {
+	position: absolute;
+	left: 625px;
+	top: 140px;
+	width: 200px;
+	text-align: justify;
+}
+
+div.explanation h3 {
+	width: 200px;
+	height: 25px;
+	background-image: url(/static/ZenCss/037/sowhatisthisabout.jpg);
+	margin: 0 0 0.5em;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.explanation p {
+	margin: 0 0.5em 0.5em;
+}
+
+div.participation {
+	position: absolute;
+	left: 875px;
+	top: 140px;
+	width: 200px;
+	text-align: justify;
+}
+
+div.participation h3 {
+	width: 200px;
+	height: 25px;
+	background-image: url(/static/ZenCss/037/participation.jpg);
+	margin: 0 0 0.5em;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.participation p {
+	margin: 0 0.5em 0.5em;
+}
+
+div.benefits {
+	position: absolute;
+	left: 1125px;
+	top: 140px;
+	width: 200px;
+	text-align: justify;
+}
+
+div.benefits h3 {
+	width: 200px;
+	height: 25px;
+	background-image: url(/static/ZenCss/037/benefits.jpg);
+	margin: 0 0 0.5em;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.benefits p {
+	margin: 0 0.5em 0.5em;
+}
+
+div.requirements {
+	position: absolute;
+	left: 1375px;
+	top: 140px;
+	width: 400px;
+	text-align: justify;
+}
+
+div.requirements h3 {
+	width: 400px;
+	height: 25px;
+	background-image: url(/static/ZenCss/037/requirements.jpg);
+	margin: 0 0 0.5em;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.requirements p {
+	margin: 0 0.5em 0.5em;
+}
+
+/* The Navigation
+---------------------------------------*/
+
+ .sidebar {
+	position: absolute;
+	left: 1828px;
+	top: 140px;
+	width: 220px;
+	background-color: transparent;
+	color: inherit;
+	background-image: url(/static/ZenCss/037/bg_linklist.jpg);
+	background-repeat: repeat-y;
+	text-transform: lowercase;
+}
+
+
+.sidebar div.design-selection li a:link, .sidebar div.design-selection li a:visited {
+	display: block;
+	margin-left: -10px;
+	padding-left: 26px;
+	color: #8B879E;
+	background-color: transparent;
+	border-top: 1px solid #C6C6D2;
+	background-image: url(/static/ZenCss/037/linklistlink.jpg);
+	background-repeat: no-repeat;
+}
+
+.sidebar li a:link, .sidebar div.design-selection li a.designer-name:link, .sidebar li a:visited, .sidebar div.design-selection li a.designer-name:visited {
+	display: inline;
+	background-image: none;
+	color: #A52A2A;
+	background-color: transparent;
+	padding-left: 0;
+	margin-left: 0;
+	border: none;
+}
+
+
+.sidebar ul {
+	list-style: none;
+	margin: 0 0 0 25px;
+	padding-left: 0;
+}
+
+.sidebar li {
+	padding-left: 10px;
+}
+
+
+
+div.design-selection h3 {
+	float:left;
+	margin-top: 0;
+	width: 25px;
+	height: 200px;
+	background-image: url(/static/ZenCss/037/selectadesign.jpg);
+	background-repeat: no-repeat;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.design-archives {
+	clear:left;
+	margin-top: 0;
+	border-top: 10px solid #D9D6E7; 
+}
+
+div.design-archives h3 {
+	float:left;
+	margin-top: 0;
+	width: 25px;
+	height: 81px;
+	background-image: url(/static/ZenCss/037/archives.jpg);
+	background-repeat: no-repeat;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.zen-resources {
+	clear:left;
+	margin-top: 0;
+	border-top: 10px solid #D9D6E7; 
+}
+
+div.zen-resources h3 {
+	float:left;
+	margin-top: 0;
+	width: 25px;
+	height: 95px;
+	background-image: url(/static/ZenCss/037/ressources.jpg);
+	background-repeat: no-repeat;
+
+	text-indent: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+/* ...and the footer
+--------------------------------------*/
+footer {
+	position: absolute;
+	left: 1828px;
+	top: -17px;
+	width: 220px;
+	height: 20px;
+	text-align: center;
+	word-spacing: 0.1em;
+	overflow: hidden;
+}
+
+footer a:link, footer a:visited {
+	color: #B2AFC0;
+	background-color: transparent;
+}
+
+
+
+/* and extra artwork */
+
+div.extra4 {
+	position: absolute;
+	left: 1828px;
+	top: 0px;
+	width: 214px;
+	height: 65px;
+	color: inherit;
+	background-color: #D9D6E7;
+	background-image: url(/static/ZenCss/037/transition.jpg);
+	background-repeat: no-repeat;
+}
