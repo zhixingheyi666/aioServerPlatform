@@ -5,7 +5,8 @@ drop database if exists excodout;
 create database excodout;
 
 use excodout;
---21:27:10	grant select, insert, update, delete on excodout.* to 'www-data'@'localhost' identified by 'www-data'	0 row(s) affected,
+--21:27:10
+grant select, insert, update, delete on excodout.* to 'www-data'@'localhost' identified by 'www-data'	0 row(s) affected,
 --  1 warning(s): 1287 Using GRANT for creating new user is deprecated and will be removed in future release.
 -- Create new user with CREATE USER statement.	0.000 sec
 

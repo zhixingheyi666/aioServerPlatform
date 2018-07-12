@@ -118,6 +118,12 @@ class TextField(Field):
         super().__init__(name, 'text', False, default)
         
 class ModelMetaclass(type):
+    """
+    这里可以看出，ModelMetaclass这里的写法，就是提供了一种修改class属性的途径，attrs
+    是传进来的class的属性的一个dict?
+    创建class时候，把这个作为参数传递进去
+    就会用这里编写的方法对要创建的class进行指定的修改
+    """
     def __new__(cls ,name, bases, attrs):
         #排除Model类本身
         if name == 'Model':
@@ -132,6 +138,12 @@ class ModelMetaclass(type):
         for k, v in attrs.items():
             if isinstance(v, Field):
                 logger.info('Found mapping: %s --> %s' % (k, v))
+                """
+                #SF#每个数据库表对应的一个类，表的每个列，对应一个属性
+                列对应的属性在这里就是Feild，也是一个Feild类的实例
+                最后通过这里的mateclass
+                把Feild实例整理存储在一个__mapping__的dict结构中
+                """
                 mappings[k] = v
                 if v.primary_key:
                     #找到主键：
@@ -279,6 +291,7 @@ class User(Model):
 
 if __name__ == '__main__':
     ut = User(id = 1235, name = 'Richael', email = 'mytest@orm.org', password = 'passmy')
+    test = 'mytest';
     
 
 

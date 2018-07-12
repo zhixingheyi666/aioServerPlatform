@@ -50,12 +50,42 @@ def post(path):
         return wrapper
 
     return decorator
+"""
+根据度娘搜到的，inspect模块主要提供了四种用处：
+(1). 对是否是模块，框架，函数等进行类型检查。
+(2). 获取源码
+(3). 获取类或函数的参数的信息
+(4). 解析堆栈
+    下面记录一下：获取类或函数的参数的信息
+    inspect.signature（fn)将返回一个inspect.Signature类型的对象，值为fn这个函数的所有参数
+    inspect.Signature.parameters是一个mappingproxy（映射）类型的对象，值为一个有序字典（Orderdict)。
+    这个字典里的key是函数的参数名，这个字典里的value是一个inspect.Parameter类型的对象(我们暂时称其为
+    param_obj)，根据我的理解，这个param_obj对象里包含的一个参数的各种信息，而其中：
+    ·param_obj.kind的属性值表示这个参数是何种类型的参数
+        与廖雪峰讲义(廖雪峰的讲法不是很科学，仅供参考)中的名称的对应关系如下：
+        POSITIONAL_OR_KEYWORD：在可变参数(VAR_POSITIONAL)之前的其kind属性都是这个值，包括有默认值和没有默认值的
+        VAR_POSITIONAL：定义函数时候，带一个*号的参数，廖雪峰称之为可变参数
+        KEYWORD_ONLY：廖雪峰称之为命名关键字参数，实则在VAR_POSITIONAL后面的参数就是KEYWORD参数。
+                        KEYWORD_ONLY参数必须正确的传入参数的名字，而POSITIONAL_OR_KEYWORD仅需要
+                        传入参数值即可。KEYWORD_ONLY有默认值和没有默认值都可。
+        VAR_KEYWORD；在定义参数时候位置在最后，带两个*号的参数，廖雪峰把这个和KEYWORD_ONLY称之为关键字参数
+                        但根据其英文意思，我觉得称之为可变关键字参数比较合适。
+        总结来说，我认为python中的参数分可以分为两大类，一类是只传递值的，包括POSITIONAL_OR_KEYWORD和POSITIONAL_OR_KEYWORD
+            另一类是传递映射对的，就是传递名字和值的，包括POSITIONAL_OR_KEYWORD和POSITIONAL_OR_KEYWORD。              
+    ·param_obj.default属性：如果这个参数有默认值，即返回这个默认值，如果没有，返回一个inspect._empty类。
+        所以如下语句值为真的时候，即可判定其没有默值
+        param.default == inspect.Parameter.empty
+    
+    参考网址：
+    https://blog.csdn.net/weixin_35955795/article/details/53053762
+"""
 
-
+# 提取没有默认值的关键字参数，也即必要，调用函数时候必须要传入值的参数(required)
 def get_required_kw_args(fn):
     args = []
     params = inspect.signature(fn).parameters
     for name, param in params.items():
+        # 提取没有默认值的关键字参数，也即必要，调用函数时候必须要传入值的参数(required)
         if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default == inspect.Parameter.empty:
             args.append(name)
             return tuple(args)
@@ -65,11 +95,13 @@ def get_named_kw_args(fn):
     args = []
     params = inspect.signature(fn).parameters
     for name, param in params.items():
+        # 获取所有(命名的,named)关键字参数
         if param.kind == inspect.Parameter.KEYWORD_ONLY:
             args.append(name)
     return tuple(args)
 
 
+# 判断是否存在某一个(命名的,named)关键字参数
 def has_named_kw_args(fn):
     params = inspect.signature(fn).parameters
     for name, param in params.items():
@@ -77,6 +109,7 @@ def has_named_kw_args(fn):
             return True
 
 
+# 判断是否存在可变关键字参数
 def has_var_kw_arg(fn):
     params = inspect.signature(fn).parameters
     for name, param in params.items():
@@ -84,6 +117,7 @@ def has_var_kw_arg(fn):
             return True
 
 
+# 判断是有一个参数的名字叫request
 def has_request_arg(fn):
     args = []
     sig = inspect.signature(fn)
@@ -100,7 +134,7 @@ def has_request_arg(fn):
     return found
 
 
-# self# 响应来自客户端的api或者url请求，做些预处理
+# self# 响应来自客户端的api或者url请求，做些预处理，然后调用传入的事件处理函数fn
 class RequestHandler(object):
     # ipdb.set_trace()
     def __init__(self, app, fn):
@@ -112,10 +146,12 @@ class RequestHandler(object):
         self._named_kw_args = get_named_kw_args(fn)
         self._required_kw_args = get_required_kw_args(fn)
 
+
     @asyncio.coroutine
     def __call__(self, request):
         # ipdb.set_trace()
         kw = None
+        # 这里写的不妥，因为_has_named_kw_args包含_required_kw_args
         if self._has_var_kw_arg or self._has_named_kw_args or self._required_kw_args:
             if request.method == 'POST':
                 if not request.content_type:
@@ -140,6 +176,9 @@ class RequestHandler(object):
         if kw is None:
             kw = dict(**request.match_info)
         else:
+            # 这里的逻辑也有问题，正确的意思是，如果有命名关键字参数但是没有可变关键字参数的话，
+            # 应该删除预选参数列表中多余的参数，应该是if self._named_kw_args and not self._has_var_kw_arg:
+            # not a or b 的结合性：not 的优先级是大于and和or的，所以相当于(not a) or b
             if not self._has_var_kw_arg or self._named_kw_args:
                 # remove all unamed kw:
                 copy = dict()
@@ -181,6 +220,9 @@ def add_static(app):
     tempPath = os.path.abspath(os.path.join(tempPath, "practice"))
     app.router.add_static('/practice/', tempPath)
     logger.info('Add static %s => %s' % ('/practice/', tempPath))
+    # 调试其他网站，临时加的路径
+    app.router.add_static('/ajax/libs/jquery/1.8.2/', tempPath)
+    logger.info('Add static %s => %s' % ('/ajax/libs/jquery/1.8.2/', tempPath))
 
 
 def add_route(app, fn):

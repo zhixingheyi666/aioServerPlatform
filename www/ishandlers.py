@@ -42,6 +42,13 @@ def isindexJs(js):
 
 
 """
+@get('/ajax/libs/jquery/1.8.2/{js}')
+def isindexJs(js):
+    logger.info("=================== "+js+" =================")
+    return {'__template__': 'static/' + js}
+"""
+
+"""
 @get('/css/{css}')
 def isindexCss(css):
     return {'__template__': 'css/' + css}
@@ -80,17 +87,19 @@ def isindexX(**kw):
             'fmates': result,
             'keywords': keyWords}
 
-
+"""
+#旧版本函数，已过时
 @get('/ix')
 def isindexIX():
     result = yield from codeen('lendwork')
     return {'__template__': 'isearchForm@@ix.html',  # 'fmates': alldb,
             'fmates': result}
 
-
 @get('/is')
 def isindexI():
     return {'__template__': 'isearch@i.html'}
+"""
+
 
 
 @get('/iiis')

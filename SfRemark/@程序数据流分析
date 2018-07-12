@@ -1,0 +1,22 @@
+===========================????==============================================
+===========================????==============================================
+············
+---------------------------20180711----------------------------------------------
+外部来的request，
+    会先经过coreweb的RequestHandler处理，
+    得到的参数(kw)传app.router中相对应的函数来处理,
+    然后得到了响应的主体数据，
+    然后传给jinja2？
+
+相关的语句：
+    method = getattr(fn, '__method__', None)
+    path = getattr(fn, '__route__', None)
+    ...
+    app.router.add_route(method, path, RequestHandler(app, fn))   ------ coroweb.py
+
+
+    app = web.Application(loop=loop, middlewares=[logger_factory, auth_factory, response_factory])
+    ...
+    init_jinjia2(app, path=tempPath, filters=dict(datetime=datetime_filter))   ------app.py
+
+---------------------------20180711----------------------------------------------

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-__athor__ = 'Master Wang'
+__author__ = 'Master Wang'
 
 """
 async web application
@@ -218,8 +218,9 @@ def init(loop):
     host = ['127.0.0.1']
     hostI = ['192.168.0.104', '127.0.0.1']
     hostII = ['192.168.0.106', '127.0.0.1']
-    srv = yield from loop.create_server(app.make_handler(), host, 9999)
-    # srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9999)
+    # srv = yield from loop.create_server(app.make_handler(), host, 9999)
+    # srv = yield from loop.create_server(app.make_handler(), host, 80)
+    srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9999)
     logger.info('Server started at http://127.0.0.1:9999...')
     return srv
 
