@@ -2,10 +2,11 @@
 
 __author__ = 'Master Wang'
 
+
 import sys, ipdb
 
 from mylog import *
-
+import json
 # logger = crLog(fname = 'D:\桌面\coroweb.log')
 # from logSf10 import logger
 # logger = logger
@@ -16,6 +17,7 @@ import asyncio, os, inspect, functools
 from urllib import parse
 from aiohttp import web
 from apis import APIError
+
 
 
 def get(path):
@@ -158,7 +160,13 @@ class RequestHandler(object):
                     return web.HTTPBadReqiuest('Missing Content-Type.')
                 ct = request.content_type.lower()
                 if ct.startswith('application/json'):
-                    params = yield from request.json()
+                    # params = yield from request.json()
+                    params = yield from request.text()
+                    try:
+                        params = json.loads(params)
+                    except Exception as e:
+                        logger.info("----------Failed convert to JSON---------------------")
+                        pass
                     if not isinstance(params, dict):
                         return web.HTTPBadRequest('JSON body must be object.')
                     kw = params

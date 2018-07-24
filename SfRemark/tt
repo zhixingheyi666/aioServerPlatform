@@ -1,0 +1,25 @@
+C:\Python34\Lib\site-packages\aiohttp\web_request.py   request.json
+Traceback (most recent call last):
+  File "C:\Python34\lib\site-packages\aiohttp\web_protocol.py", line 422, in start
+    resp = yield from self._request_handler(request)
+  File "C:\Python34\lib\site-packages\aiohttp\web.py", line 306, in _handle
+    resp = yield from handler(request)
+  File "D:/Pycharm/bootstrap_ln/www/app.py", line 83, in loggerI
+    return (yield from handler(request))
+  File "D:/Pycharm/bootstrap_ln/www/app.py", line 102, in auth
+    return (yield from handler(request))
+  File "D:/Pycharm/bootstrap_ln/www/app.py", line 129, in response
+    rr = yield from handler(request)
+  File "C:\Python34\lib\site-packages\aiohttp\web_urldispatcher.py", line 115, in handler_wrapper
+    result = yield from result
+  File "D:/Pycharm/bootstrap_ln/www\coroweb.py", line 161, in __call__
+    params = yield from request.json()
+  File "C:\Python34\lib\site-packages\aiohttp\web_request.py", line 469, in json
+    return loads(body)
+  File "C:\Python34\lib\json\__init__.py", line 318, in loads
+    return _default_decoder.decode(s)
+  File "C:\Python34\lib\json\decoder.py", line 343, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Python34\lib\json\decoder.py", line 361, in raw_decode
+    raise ValueError(errmsg("Expecting value", s, err.value)) from None
+ValueError: Expecting value: line 1 column 2 (char 1)

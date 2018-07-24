@@ -35,6 +35,56 @@ from mylog import *
 # logger = crLog(fname = 'D:\桌面\handlers.log')
 logger.info('Succeed')
 
+def printObj(obj, logText):
+    if isinstance(obj,dict):
+        keys = list(obj.keys())
+        keys.sort()
+        message = ""
+        for k in keys:
+            message = message + str(k) + ":\t" + str(obj[k]) + "\n        "
+    else:
+        message = obj
+    try:
+        logger.info("-----|| %s ||-----------------------------" % logText)
+        logger.info(message)
+        logger.info("-----|| %s ||-----------------------------" % logText)
+    except Exception as e:
+        logger.info(e)
+
+
+@post('/MI/trackEvent/objHandler')
+def miHandJsonObj(request, *, name, action, obj):
+    """
+    #这个代码方案测试成功
+    haveModels = {"account": User_note}
+    name_model = "blog"
+    rs = yield from haveModels[name_model].findNumber('count(id)')
+    printObj(rs,"for test haveModels!")
+    """
+
+    haveModels = {"account": User_note}
+
+    if name == "UNKOWN":
+        text = "SaveObj Failed: Please give the obj name..."
+        printObj(obj,text)
+        rs = "-----|| This is miHandJsonObj ||-----------------------------"
+    elif name in haveModels.keys():
+        if action == "save":
+            kw = {"obj": obj}
+        objInstance = haveModels[name](**kw)
+        rs = yield from objInstance.save()
+    else:
+        text = "SaveObj Failed: No Model for obj --> %s" % name
+        printObj(obj, text)
+        rs = "-----|| This is miHandJsonObj ||-----------------------------"
+    return rs
+
+
+@post('/MI/trackEvent')
+def miTrackEvent(**kw):
+    text = "This is miTrackEvent"
+    printObj(kw,text)
+    return "-----|| %s ||-----------------------------" % text
 
 @get('/js/{js}')
 def isindexJs(js):
@@ -124,3 +174,18 @@ def isindexIV():
 
 if __name__ == '__main__':
     logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>/n为方便分步测试，这里直接引入数据库操纵语句/n/n")
+
+
+    """
+    #下面测试语句失败，因为没有loop
+    have_models = {"user":User,"blog":Blog}
+    name_model = "blog"
+    def test():
+        if '__poollist'not in locals() or '__poollist'not in globals():
+            # 测试isearch,临时添加生成 链接到fortest数据库的连接池 的语句
+            yield from orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='isearch', password='isearch',
+                               database='fortest')
+        rs = yield from have_models[name_model].findNumber('count(id)')
+        return rs
+    test()
+    """

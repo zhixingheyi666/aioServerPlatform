@@ -65,7 +65,7 @@ def select( sql, args, size = None, database = 'excodout'):
 @asyncio.coroutine
 def execute(sql, args, autocommit = True, database = 'excodoout'):
     log(sql)
-    with (yield from __poollist['excodout']) as conn:
+    with (yield from __poollist[database]) as conn:
         if not autocommit:
             yield from conn.begin()
         try:
@@ -97,25 +97,39 @@ class Field(object):
     def __str__(self):
         return '<%s, %s:%s>' % ( self.__class__.__name__, self.column_type, self.name )
     
+
 class StringField(Field):
-    def __init__(self, name = None, primary_key = False, default = None, ddl = 'varchar(100)'):
-        super().__init__(name, ddl, primary_key, default)
+    def __init__(self, name = None, primary_key = False, default = None, colType = 'varchar(100)'):
+        super().__init__(name, colType, primary_key, default)
     
+
 class BooleanField(Field):
     def __init__(self, name = None, default = False):
         super().__init__(name, 'boolean', False, default)
     
+
 class IntegerField(Field):
-    def __init__(self, name = None, primary_key = False, default = 0):
-        super().__init__(name, 'bigint', primary_key, default)
-    
+    def __init__(self, name = None, primary_key = False, default = 0, colType ='bigint'):
+        super().__init__(name, colType, primary_key, default)
+
+
+class BinaryField(Field):
+    def __init__(self, name = None, primary_key = False, default = 0, colType ='binary(16)'):
+        super().__init__(name, colType, primary_key, default)
+
+
+class TimeStampField(Field):
+    def __init__(self, name=None, primary_key=False, default = 0, colType='timestamp'):
+        super().__init__(name, colType, primary_key, default)
+
+
 class FloatField(Field):
-    def __init__(self, name = None, primary_key = False, default = 0.0):
-        super().__init__(name, 'real', primary_key, default)
+    def __init__(self, name = None, primary_key = False, default = 0.0, colType = 'real'):
+        super().__init__(name, colType , primary_key, default)
     
 class TextField(Field):
-    def __init__(self, name = None, default = False):
-        super().__init__(name, 'text', False, default)
+    def __init__(self, name = None, default = False, colType = 'text'):
+        super().__init__(name, colType, False, default)
         
 class ModelMetaclass(type):
     """
@@ -234,6 +248,7 @@ class Model(dict,metaclass = ModelMetaclass):
     def findNumber(cls, selectField, where = None, args = None):
         'find number by selected and where'
         #梗#`%s`是什么用法
+        #这的_num是sql语句中的"别名"，查询某一列，然后给这一列起了个别名_num_，查询结果的列名直接就是这个别名了
         sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
         if where:
             sql.append('where')
