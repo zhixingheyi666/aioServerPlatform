@@ -6,6 +6,7 @@ __author__ = 'Master Wang'
 import asyncio, aiomysql, pdb
 
 from mylog import logger
+import copy
 import sys
 # sysFc = 'D:\\python_learn\\sysFc'
 # sys.path.append(sysFc)
@@ -87,50 +88,77 @@ def create_args_string(num):
         L.append('?')
     return ','.join(L)
 
+"""
+# 首次在python中自编闭包形式的函数，虽然最后用不到了，留作纪念
+def create_insert_string(tableName, primaryKey):
+    def func(tableName, primaryKey):
+        def insert_string(self, columns, escapes):
+            # escaped_fields = list(map(lambda f: '`%s`' % f, fields))
+            columns = copy.copy(columns)
+            if primaryKey not in columns:
+                columns.append(primaryKey)
+            fields = list(map(lambda f: '`%s`' % f, filter(lambda x: x not in escapes, columns)))
+            sql = 'insert into `%s` (%s) values (%s)' % (
+                tableName, ','.join(fields), create_args_string(len(fields)))
+            return sql
+        return insert_string
+    return func(tableName, primaryKey)
+
+"""
+
 class Field(object):
-    def __init__(self, name, column_type, primary_key, default):
+    def __init__(self, name, column_type, primary_key, default, auto_fill):
         self.name = name
         self.column_type = column_type
         self.primary_key = primary_key
-        self.default = default
-        
+        # auto_fill是数据库自动填充的，例如id的autoincrement，或者timestamp，或者建立table时候的default值
+        # 而这里的default是orm创建table到相应class类映射的时候设定的，下面的写法是以这个设定优先
+        if default is not None:
+            self.default = default
+            self.auto_fill = False
+        else:
+            self.default = default
+            self.auto_fill = auto_fill
+
     def __str__(self):
-        return '<%s, %s:%s>' % ( self.__class__.__name__, self.column_type, self.name )
-    
+        return '<%s, %s:%s>' % (self.__class__.__name__, self.column_type, self.name)
+
 
 class StringField(Field):
-    def __init__(self, name = None, primary_key = False, default = None, colType = 'varchar(100)'):
-        super().__init__(name, colType, primary_key, default)
-    
+    def __init__(self, name=None, primary_key=False, default=None, colType='varchar(100)', auto_fill=False):
+        super().__init__(name, colType, primary_key, default, auto_fill)
+
 
 class BooleanField(Field):
-    def __init__(self, name = None, default = False):
-        super().__init__(name, 'boolean', False, default)
-    
+    def __init__(self, name=None, default=None, auto_fill=False):
+        super().__init__(name, 'boolean', False, default, auto_fill)
+
 
 class IntegerField(Field):
-    def __init__(self, name = None, primary_key = False, default = 0, colType ='bigint'):
-        super().__init__(name, colType, primary_key, default)
+    def __init__(self, name=None, primary_key=False, default=None, colType='bigint', auto_fill=False):
+        super().__init__(name, colType, primary_key, default, auto_fill)
 
 
 class BinaryField(Field):
-    def __init__(self, name = None, primary_key = False, default = 0, colType ='binary(16)'):
-        super().__init__(name, colType, primary_key, default)
+    def __init__(self, name=None, primary_key=False, default=None, colType='binary(16)', auto_fill=False):
+        super().__init__(name, colType, primary_key, default, auto_fill)
 
 
 class TimeStampField(Field):
-    def __init__(self, name=None, primary_key=False, default = 0, colType='timestamp'):
-        super().__init__(name, colType, primary_key, default)
+    def __init__(self, name=None, primary_key=False, default=None, colType='timestamp', auto_fill=False):
+        super().__init__(name, colType, primary_key, default, auto_fill)
 
 
 class FloatField(Field):
-    def __init__(self, name = None, primary_key = False, default = 0.0, colType = 'real'):
-        super().__init__(name, colType , primary_key, default)
-    
+    def __init__(self, name=None, primary_key=False, default=None, colType='real', auto_fill=False):
+        super().__init__(name, colType, primary_key, default, auto_fill)
+
+
 class TextField(Field):
-    def __init__(self, name = None, default = False, colType = 'text'):
-        super().__init__(name, colType, False, default)
-        
+    def __init__(self, name=None, default=None, colType='text', auto_fill=False):
+        super().__init__(name, colType, False, default, auto_fill)
+
+
 class ModelMetaclass(type):
     """
     这里可以看出，ModelMetaclass这里的写法，就是提供了一种修改class属性的途径，attrs
@@ -172,8 +200,10 @@ class ModelMetaclass(type):
             attrs.pop(k)
         escaped_fields = list(map(lambda f: '`%s`' % f, fields))
         attrs['__mappings__'] = mappings #保存属性和映射的关系
+        attrs['__escape_column__'] = set()
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey #主键属性名
+        # 这里的fields采用list是因为后面sql语句中要与参数位置一一对应，需要有确定的顺序
         attrs['__fields__'] = fields #除主键外的属性名
         # 构造默认的SELECT, INSERT, UPDATE和DELETE语句:
         attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ','.join(escaped_fields), tableName)
@@ -194,7 +224,21 @@ class Model(dict,metaclass = ModelMetaclass):
             
     def __setattr__(self, key, value):
         self[key] = value
-        
+
+    """
+    # SF：本函数扩充了对数据库中含有自动填充的列
+    # （例如auto increment，timestamp）的表
+    #  生成insert语句的支持
+    """
+    def create_insert_string(self, columns, escapes):
+        columns = copy.copy(columns)
+        if self.__primary_key__ not in columns:
+            columns.append(self.__primary_key__)
+        fields = list(map(lambda f: '`%s`' % f, filter(lambda x: x not in escapes, columns)))
+        sql = 'insert into `%s` (%s) values (%s)' % (
+            self.__table__, ','.join(fields), create_args_string(len(fields)))
+        return sql
+
     def getValue(self, key):
         """
         现在已经建立了程序按行入库的框架，因此我组织程序的方式可以有新的变革
@@ -205,14 +249,23 @@ class Model(dict,metaclass = ModelMetaclass):
         return getattr(self,key,None)
     
     def getValueOrDefault(self,key):
-        value = getattr(self,key,None)
+        auto_fill = False
+        if key in self.__escape_column__:
+            self.__escape_column__.discard(key)
+        # todo:由于列名对应实例的属性，所以实例的其他属性和函数名不能和列名相同
+        #       或者说列名不能和实例一般属性以及函数重名
+        value = getattr(self, key, None)
         if value is None:
             field = self.__mappings__[key]
             if field.default is not None:
                 value = field.default() if callable(field.default) else field.default
                 logger.info('Using default value for %s: %s' % (key, str(value)))
                 setattr(self,key,value)
-        return value
+            elif field.auto_fill is True:
+                self.__escape_column__.add(key)
+                auto_fill = True
+                logger.info('Using database auto fill value for %s: %s' % (key, str(value)))
+        return [value, auto_fill]
 
     @classmethod
     @asyncio.coroutine
@@ -269,9 +322,18 @@ class Model(dict,metaclass = ModelMetaclass):
     
     @asyncio.coroutine
     def save(self):
-        args = list(map(self.getValueOrDefault,self.__fields__))
-        args.append(self.getValueOrDefault(self.__primary_key__))
-        rows = yield from execute(self.__insert__,args)
+        pre_args = list(map(self.getValueOrDefault,self.__fields__))
+        pre_args.append(self.getValueOrDefault(self.__primary_key__))
+        args = []
+        for arg in pre_args:
+            if arg[1] is False:
+                args.append(arg[0])
+        # creat_sql = self.__insert__
+        sql = self.create_insert_string(self.__fields__, self.__escape_column__)
+        rows = yield from execute(sql, args, database="fortest")
+        while len(self.__escape_column__):
+            self.__escape_column__.pop()
+        # rows = yield from execute(self.__insert__(self.__fields__, self.__escape_column__), args)
         if rows != 1:
             logger.warn('Failed to insert record: affected rows: %s' % rows)
     

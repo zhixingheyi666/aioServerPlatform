@@ -21,13 +21,13 @@ class UsersNote(Model):
     __table__ = 'users_note'
 
     # 定义类的属性到列的映射
-    id = IntegerField(primary_key = True,  colType = 'int(11)')
+    id = IntegerField(primary_key=True,  colType='int(11)', auto_fill=True)
     path = StringField(colType='varchar(800)')
-    meta = StringField(colType='varchar(255)')
-    mate_hash = BinaryField()
+    mate = StringField(colType='varchar(255)')
+    mate_hash = BinaryField(colType='binary(20)')
     mate_order = IntegerField(colType='smallint')
     order = IntegerField(colType='int(11)')
-    update = TimeStampField()
+    update_time = TimeStampField(auto_fill=True)
     format = StringField(colType='varchar(30)')
     data = StringField(colType='varchar(1200)')
 
@@ -39,7 +39,7 @@ class DataNote(Model):
     # 定义类的属性到列的映射
     data = TextField(colType='mediumtext')
     data_hash = BinaryField(primary_key=True)
-    quote = IntegerField(colType='mediumint')
+    quote = IntegerField(colType='mediumint', default=1)
 
 
 class TableRegisterNote(Model):
@@ -48,7 +48,7 @@ class TableRegisterNote(Model):
 
     # 定义类的属性到列的映射
     table = StringField(primary_key=True, colType='varchar(800)')
-    quote = IntegerField(colType='int', default=1)
+    last_order = IntegerField(colType='int', default=1)
 
 class User(Model):
     # 类映射的表名

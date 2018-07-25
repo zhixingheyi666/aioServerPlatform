@@ -113,10 +113,10 @@ create table users_note(
   `id` int(11) unsigned not null auto_increment,
   `path` varchar(800) not null,
   `mate` varchar(255) not null,
-  `mate_hash` BINARY(16) not null,
+  `mate_hash` BINARY(20) not null,
   `mate_order` SMALLINT  NOT NULL,
   `order` INT(11)  NOT NULL,
-  `update` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `format` varchar(30) not null,
   `data` VARCHAR(1200) not null,
   UNIQUE (`path`,`mate_order`,`order`),
@@ -129,14 +129,14 @@ create table users_note(
 */
 create table text_data_note(
   `data` MEDIUMTEXT not null,
-  `data_hash` BINARY(16) not null,
+  `data_hash` BINARY(32) not null,
   `quote` MEDIUMINT not NULL ,
   primary key (`data_hash`)
 ) engine = myisam default charset = utf8;
 
 CREATE TABLE table_register_note(
   `table` VARCHAR(800) not null,
-  `last_order` int(11) DEFAULT 1,
+  `last_order` int(11) ,
   PRIMARY KEY (`table`)
 ) ENGINE  = innodb DEFAULT CHARSET = utf8;
 

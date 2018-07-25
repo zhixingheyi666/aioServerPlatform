@@ -11,7 +11,7 @@ from aiohttp import web
 from coroweb import get, post
 from apis import Page, APIError, APIPermissionError, APIValueError, APIResourceNotFoundError
 
-from models import User, Comment, Blog, next_id
+from models import User, Comment, Blog, next_id, UsersNote, DataNote, TableRegisterNote
 from config import configs
 
 # 引入数据处理引擎
@@ -35,8 +35,9 @@ from mylog import *
 # logger = crLog(fname = 'D:\桌面\handlers.log')
 logger.info('Succeed')
 
+
 def printObj(obj, logText):
-    if isinstance(obj,dict):
+    if isinstance(obj, dict):
         keys = list(obj.keys())
         keys.sort()
         message = ""
@@ -62,16 +63,20 @@ def miHandJsonObj(request, *, name, action, obj):
     printObj(rs,"for test haveModels!")
     """
 
-    haveModels = {"account": User_note}
+    haveModels = {"account": UsersNote}
 
-    if name == "UNKOWN":
+    if name == "UNKNOWN":
         text = "SaveObj Failed: Please give the obj name..."
-        printObj(obj,text)
+        printObj(obj, text)
         rs = "-----|| This is miHandJsonObj ||-----------------------------"
     elif name in haveModels.keys():
         if action == "save":
             kw = {"obj": obj}
-        objInstance = haveModels[name](**kw)
+        # objInstance = haveModels[name](**kw)
+        # 为临时测试代码
+        objInstance = UsersNote(path="account.email.work@iv", mate="email",
+                                mate_hash=hashlib.sha1("account.word".encode("utf-8")).digest(), mate_order=10,
+                                order=12, format="String", data="masterIV@MI.com")
         rs = yield from objInstance.save()
     else:
         text = "SaveObj Failed: No Model for obj --> %s" % name
@@ -83,8 +88,9 @@ def miHandJsonObj(request, *, name, action, obj):
 @post('/MI/trackEvent')
 def miTrackEvent(**kw):
     text = "This is miTrackEvent"
-    printObj(kw,text)
+    printObj(kw, text)
     return "-----|| %s ||-----------------------------" % text
+
 
 @get('/js/{js}')
 def isindexJs(js):
@@ -104,10 +110,12 @@ def isindexCss(css):
     return {'__template__': 'css/' + css}
 """
 
+
 @get('/tt')
 def isindexTtt():
     result = [[{'flid': 0, 'line': '<span style="color:red">查询参数错误: </span> '}]]
     return {'__template__': 'ZenCss@@Bk.html', 'fmates': result}
+
 
 @get('/t')
 def isindexTt():
@@ -134,8 +142,8 @@ def isindexX(**kw):
         keyWords = ['']
         result = [[{'flid': 0, 'line': '查询参数错误:  ' + str(kw)}]]
     return {'__template__': 'isearchForm@xi.html',  # 'fmates': alldb,
-            'fmates': result,
-            'keywords': keyWords}
+            'fmates': result, 'keywords': keyWords}
+
 
 """
 #旧版本函数，已过时
@@ -151,11 +159,10 @@ def isindexI():
 """
 
 
-
 @get('/iiis')
 def isindexrIII():
     # alldb = yield from select('show databases', '')
-    alldb = yield from select('select * from fmate_code', '', database='fortest')
+    alldb = yield from select('SELECT * FROM fmate_code', '', database='fortest')
     logger.info(str(alldb[:10]))
     # for ai in alldb:
     return {'__template__': 'isearch@iii.html', 'fmates': alldb,
@@ -165,7 +172,7 @@ def isindexrIII():
 @get('/ivs')
 def isindexIV():
     # alldb = yield from select('show databases', '')
-    alldb = yield from select('select * from fmate_code', '', database='fortest')
+    alldb = yield from select('SELECT * FROM fmate_code', '', database='fortest')
     logger.info(str(alldb[:10]))
     # for ai in alldb:
     return {'__template__': 'isearchForm@@iv.html', 'fmates': alldb,
@@ -174,7 +181,6 @@ def isindexIV():
 
 if __name__ == '__main__':
     logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>/n为方便分步测试，这里直接引入数据库操纵语句/n/n")
-
 
     """
     #下面测试语句失败，因为没有loop
