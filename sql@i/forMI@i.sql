@@ -60,6 +60,7 @@
  b.<元>键值(<元>的名称)name受数据库限制，5.0版本之后是长度不得超过255个字元
  c.<元>的路径path限制，5.0版本之后是长度不得超过800个字元
  c.<元>的值data限制，5.0版本之后是长度不得超过1200个字元
+ d.由于是python驱动的，列名会映射成python对象，所以列名最好不要和python关键字重名
 */
 
 /**
@@ -101,10 +102,10 @@
               直接拼装成json格式数据。
     order： 每存一次数据，该值增加1，相同的order表示是同一次的数据。如果
             要取出某次的数据，给出相应的order即可。
-    format: mate值类型列。原则上把所有的<元>的值都可以存储为str类型，因为
+    mate_format: mate值类型列。原则上把所有的<元>的值都可以存储为str类型，因为
             对象都是通过json传过来的，也就是都是字符串化的。目前这列
-            的用处，就是区分<元>的值是另一个对象，还是一般的可以字符串化的值(bool,number,str,array)
-            如果是对象，这一列的键值就是Object；还可以区分是<元>的值是否被转储，
+            的用处，就是区分<元>的值是另一个对象，还是一般的可以字符串化的值(bool,number,str)
+            如果是对象，这一列的键值就是Object，如果是Array，这一列的键值就是Array；还可以区分是<元>的值是否被转储，
             如果转储，这一列的值就是exStorage。
 */
 use fortest;
@@ -117,8 +118,8 @@ create table users_note(
   `mate_order` SMALLINT  NOT NULL,
   `order` INT(11)  NOT NULL,
   `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `format` varchar(30) not null,
-  `data` VARCHAR(1200) not null,
+  `mate_format` varchar(30) not null,
+  `data` VARCHAR(1200)  NULL ,
   UNIQUE (`path`,`mate_order`,`order`),
   KEY (`order`),
   primary key (`id`)

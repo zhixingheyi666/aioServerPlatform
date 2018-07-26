@@ -15,7 +15,7 @@ from orm import BinaryField, IntegerField, TimeStampField
 def next_id():
     return '%015d%s000' % (int(time.time() * 1000), uuid.uuid4().hex)
 
-
+# todo:这里还应当完善传入参数检查机制
 class UsersNote(Model):
     # 类映射的表名
     __table__ = 'users_note'
@@ -28,7 +28,7 @@ class UsersNote(Model):
     mate_order = IntegerField(colType='smallint')
     order = IntegerField(colType='int(11)')
     update_time = TimeStampField(auto_fill=True)
-    format = StringField(colType='varchar(30)')
+    mate_format = StringField(colType='varchar(30)')
     data = StringField(colType='varchar(1200)')
 
 

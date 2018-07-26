@@ -23,6 +23,7 @@ from copy import deepcopy
 # self#
 # 为方便分步测试，这里直接引入数据库操纵语句。
 from orm import select
+import  random
 
 # 为自定义的模块添加搜索路径
 import sys
@@ -74,10 +75,10 @@ def miHandJsonObj(request, *, name, action, obj):
             kw = {"obj": obj}
         # objInstance = haveModels[name](**kw)
         # 为临时测试代码
-        objInstance = UsersNote(path="account.email.work@iv", mate="email",
+        objInstance = UsersNote(path="account.email.work@v"+str(random.randint(0, 100000)), mate="email",
                                 mate_hash=hashlib.sha1("account.word".encode("utf-8")).digest(), mate_order=10,
-                                order=12, format="String", data="masterIV@MI.com")
-        rs = yield from objInstance.save()
+                                order=12, mate_format="String", data="None")
+        rs = yield from UsersNote.saveObj(obj)
     else:
         text = "SaveObj Failed: No Model for obj --> %s" % name
         printObj(obj, text)

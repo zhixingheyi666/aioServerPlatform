@@ -89,6 +89,86 @@ def create_args_string(num):
     return ','.join(L)
 
 """
+check_symbol用以检查给定对象是否包含不支持的字符，
+    例如本项目中，path不支持"."、双引号、单引号等
+"""
+def check_symbol(k,symbol=".,\"\'\\"):
+    pass
+
+
+
+def iterObj(obj, rows  ,path ):
+    child_rows = []
+    if type(obj) == dict:
+        for k, v in obj.items():
+            mate = str(k)
+            this_path = path + "." + mate
+            mate_format = "NoneType"
+            data = None
+            if check_symbol(k):
+                pass
+            elif type(v) == dict:
+                mate_format = "Object"
+                data = None
+                iterObj(v, child_rows, this_path)
+            elif type(v) == list:
+                mate_format = "Array"
+                data = None
+                iterObj(v, child_rows, this_path + ".")
+            elif type(v) == str:
+                mate_format = "String"
+                # todo: 这里需要添加一个判定数据长度的函数，和一段长数据转储程序
+                data = v
+            elif type(v) == float or type(v) == int:
+                mate_format = "Number"
+                data = str(v)
+            elif type(v) == bool:
+                mate_format = "Bool"
+                data = str(v)
+            elif v is None:
+                mate_format = "None"
+                data = None
+            else:
+                # 数据类型超出处理范围应当报错
+                pass
+            row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
+            child_rows.append(row)
+    elif type(obj) == list:
+        for k, v in enumerate(obj):
+            mate = str(k)
+            this_path = path + "." + mate
+            mate_format = "NoneType"
+            data = None
+            if check_symbol(k):
+                pass
+            elif type(v) == dict:
+                mate_format = "Object"
+                data = None
+                iterObj(v, child_rows, this_path)
+            elif type(v) == list:
+                mate_format = "Array"
+                data = None
+                iterObj(v, child_rows, this_path + ".")
+            elif type(v) == str:
+                mate_format = "Array"
+                data = v
+            elif type(v) == float or type(v) == int:
+                mate_format = "Number"
+                data = str(v)
+            elif type(v) == bool:
+                mate_format = "Bool"
+                data = str(v)
+            elif v is None:
+                mate_format = "None"
+                data = None
+            else:
+                # 数据类型超出处理范围应当报错
+                pass
+            row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
+            child_rows.append(row)
+    rows.append(child_rows)
+
+"""
 # 首次在python中自编闭包形式的函数，虽然最后用不到了，留作纪念
 def create_insert_string(tableName, primaryKey):
     def func(tableName, primaryKey):
@@ -260,12 +340,49 @@ class Model(dict,metaclass = ModelMetaclass):
             if field.default is not None:
                 value = field.default() if callable(field.default) else field.default
                 logger.info('Using default value for %s: %s' % (key, str(value)))
-                setattr(self,key,value)
+                setattr(self, key, value)
             elif field.auto_fill is True:
                 self.__escape_column__.add(key)
                 auto_fill = True
                 logger.info('Using database auto fill value for %s: %s' % (key, str(value)))
         return [value, auto_fill]
+
+    """
+    # saveObj函数接收一个由json转化来的对象，相应代码如下：
+        .文件coroweb.py中
+            params = yield from request.text()
+                    try:
+                        params = json.loads(params)
+    # saveObj采用递归迭代的方式，将对象分解成一个个mate(元)，以及必要信息
+        每个mate对应一行，存储到数据库中
+    # saveObj是所有json转化来的对象都应该是通用的，应该是通用方法
+    """
+    @classmethod
+    @asyncio.coroutine
+    def saveObj(cls, obj, **kw):
+        if type(obj) != dict:
+            rs = "-----|| This is %s.saveObj||---( Failed,Ojb must be dict! )--------------------------" % cls.__table__
+            logger.warn( rs )
+            return rs
+        else:
+            path = ""
+            rows = []
+            iterObj(obj, rows, path)
+            def print_rows(rows, num):
+                for row in rows:
+                    if type(row) == dict:
+                        num += 1
+                        if row["data"] is not None:
+                            show = row["data"][:30]
+                        else:
+                            show = "NoneType"
+                        print("\n\n" + str(num) + "\n"+ row["path"] + "\n" + row["mate_format"] + "\n" + show + "......")
+                    else:
+                        print_rows(row, num)
+            print_rows(rows, 0)
+
+
+
 
     @classmethod
     @asyncio.coroutine
