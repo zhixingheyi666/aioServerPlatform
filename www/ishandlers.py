@@ -11,7 +11,11 @@ from aiohttp import web
 from coroweb import get, post
 from apis import Page, APIError, APIPermissionError, APIValueError, APIResourceNotFoundError
 
-from models import User, Comment, Blog, next_id, UsersNote, DataNote, TableRegisterNote
+from modelsI import getClipActionNote, getNotebooksNote, getAccountsDataNote, getSmartFilingInfoNote, getFilingInfoNote, \
+setSelectedAccountNote, getTagsNote, submissionDataNote
+
+from models import User, Comment, Blog, next_id\
+    , UsersNote, UserUrlsNote, DataNote, TableRegisterNote
 from config import configs
 
 # 引入数据处理引擎
@@ -55,7 +59,7 @@ def printObj(obj, logText):
 
 
 @post('/MI/trackEvent/objHandler')
-def miHandJsonObj(request, *, name, action, obj):
+def miHandJsonObj(request, *, name, action, obj={}):
     """
     #这个代码方案测试成功
     haveModels = {"account": User_note}
@@ -64,7 +68,16 @@ def miHandJsonObj(request, *, name, action, obj):
     printObj(rs,"for test haveModels!")
     """
 
-    haveModels = {"account": UsersNote}
+    haveModels = {"account": UsersNote
+                , "dispatchPromise\\getClipAction": getClipActionNote
+                , "dispatchPromise\\getAccountsData": getAccountsDataNote
+                , "dispatchPromise\\getSmartFilingInfo": getSmartFilingInfoNote
+                , "dispatchPromise\\getFilingInfo": getFilingInfoNote
+                , "dispatchPromise\\getNotebooks": getNotebooksNote
+                , "dispatchPromise\\getTags": getTagsNote
+                , "dispatchPromise\\setSelectedAccount": setSelectedAccountNote
+                , "submissionDataMsg":  submissionDataNote
+                , "accountUrls": UserUrlsNote}
 
     if name == "UNKNOWN":
         text = "SaveObj Failed: Please give the obj name..."
@@ -72,13 +85,23 @@ def miHandJsonObj(request, *, name, action, obj):
         rs = "-----|| This is miHandJsonObj ||-----------------------------"
     elif name in haveModels.keys():
         if action == "save":
-            kw = {"obj": obj}
+            model = haveModels[name]
+            rs = yield from model.saveObj(obj)
+        """
         # objInstance = haveModels[name](**kw)
         # 为临时测试代码
         objInstance = UsersNote(path="account.email.work@v"+str(random.randint(0, 100000)), mate="email",
                                 mate_hash=hashlib.sha1("account.word".encode("utf-8")).digest(), mate_order=10,
                                 order=12, mate_format="String", data="None")
-        rs = yield from UsersNote.saveObj(obj)
+        """
+        # rs = yield from UsersNote.saveObj(obj)
+        """
+        for row in rs:
+            objInstance = UsersNote(path=row[0], mate=row[2],
+                                mate_hash=row[4], mate_order=row[5],
+                                order=row[6], mate_format=row[1], data=row[3])
+            yield from objInstance.save()
+        """
     else:
         text = "SaveObj Failed: No Model for obj --> %s" % name
         printObj(obj, text)
@@ -89,7 +112,7 @@ def miHandJsonObj(request, *, name, action, obj):
 @post('/MI/trackEvent')
 def miTrackEvent(**kw):
     text = "This is miTrackEvent"
-    printObj(kw, text)
+    # printObj(kw, text)
     return "-----|| %s ||-----------------------------" % text
 
 
@@ -178,6 +201,7 @@ def isindexIV():
     # for ai in alldb:
     return {'__template__': 'isearchForm@@iv.html', 'fmates': alldb,
             'testtmp': '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'}
+
 
 
 if __name__ == '__main__':

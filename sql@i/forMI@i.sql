@@ -92,6 +92,9 @@
     迭代顺序的功能。由于这些行数基本接近，可以采用记录一个基准数值，然后后面用正负
     于基准值的数字串来表示的办法。
     2.mate:remark           path: users_note.remark     mate_order: -200 ... -299
+    3.mate:notObj           path:users_note.notObj      mate_order: -2
+      如果传进来的是不是对象(准确的说，不是dict或者list)，就生成这个附加信息，并存储
+      传进来的值。
 */
 /**
   d.各列简介：
@@ -125,12 +128,27 @@ create table users_note(
   primary key (`id`)
 ) engine = innodb default charset = utf8;
 
+create table user_urls_note(
+  `id` int(11) unsigned not null auto_increment,
+  `path` varchar(800) not null,
+  `mate` varchar(255) not null,
+  `mate_hash` BINARY(20) not null,
+  `mate_order` SMALLINT  NOT NULL,
+  `order` INT(11)  NOT NULL,
+  `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `mate_format` varchar(30) not null,
+  `data` VARCHAR(1200)  NULL ,
+  UNIQUE (`path`,`mate_order`,`order`),
+  KEY (`order`),
+  primary key (`id`)
+) engine = innodb default charset = utf8;
+
 /*
 ··<<引用计数法则>>
 */
 create table text_data_note(
   `data` MEDIUMTEXT not null,
-  `data_hash` BINARY(32) not null,
+  `data_hash` CHAR(64) NOT NULL,
   `quote` MEDIUMINT not NULL ,
   primary key (`data_hash`)
 ) engine = myisam default charset = utf8;

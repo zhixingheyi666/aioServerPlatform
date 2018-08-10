@@ -78,7 +78,7 @@ def logger_factory(app, handler):
 
     @asyncio.coroutine
     def loggerI(request):
-        logger.info('Request: %s %s' % (request.method, request.path))
+        # logger.info('Request: %s %s' % (request.method, request.path))
         # yield from asyncio.sleep(0.3)
         return (yield from handler(request))
 
@@ -89,7 +89,7 @@ def logger_factory(app, handler):
 def auth_factory(app, handler):
     @asyncio.coroutine
     def auth(request):
-        logger.info('Check user: %s %s' % (request.method, request.path))
+        # logger.info('Check user: %s %s' % (request.method, request.path))
         request.__user__ = None
         cookie_str = request.cookies.get(COOKIE_NAME)
         if cookie_str:
@@ -125,7 +125,7 @@ def response_factory(app, handler):
     @asyncio.coroutine
     def response(request):
         # ipdb.set_trace()
-        logger.info('Respone handler...--> respone_factory')
+        # logger.info('Respone handler...--> respone_factory')
         rr = yield from handler(request)
         if isinstance(rr, web.StreamResponse):
             return rr

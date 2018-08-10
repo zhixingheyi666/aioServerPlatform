@@ -6,14 +6,15 @@ __author__ = 'Master Wang'
 import asyncio, aiomysql, pdb
 
 from mylog import logger
-import copy
+import copy, hashlib
 import sys
 # sysFc = 'D:\\python_learn\\sysFc'
 # sys.path.append(sysFc)
 
 #logger = crLog(fname = 'D:\桌面\orm.log')
 #from logSf10 import logger 
-#logger = logger 
+#logger = logger
+import random
 
 # self#
 # 改造，用一个字典结构存储多个链接池，测试
@@ -33,27 +34,26 @@ def create_pool(loop, **kw):
     global __poollist
     ipool = yield from aiomysql.create_pool(
         #host = kw.get('host','127.0.0.1'),
-        host = kw.get('host','localhost'),
-        port = kw.get('port',3306),
-        user = kw['user'],
-        password = kw['password'],
-        db = kw['database'],
-        charset = kw.get('charset','utf8'),
-        autocommit = kw.get('autocommit',True),
-        maxsize = kw.get('maxsize',10),
-        minsize = kw.get('minsize',1),
-        loop = loop
-    )
+        host=kw.get('host', 'localhost'),
+        port=kw.get('port', 3306),
+        user=kw['user'],
+        password=kw['password'],
+        db=kw['database'],
+        charset=kw.get('charset', 'utf8'),
+        autocommit=kw.get('autocommit', True),
+        maxsize=kw.get('maxsize', 10),
+        minsize=kw.get('minsize', 1), loop=loop)
     # 暂时用所要连接的数据库的名字命名不同的连接池，以后再完善命名方案
     __poollist[kw['database']] = ipool
 
 # 函数的返回rs是一个list，这个list的每个元素是一个dict，对应于数据库表中的一行
+
 @asyncio.coroutine
 def select( sql, args, size = None, database = 'excodout'):
     log(sql, args)
     global __poollist
     with (yield from __poollist[database]) as conn:
-        cur = yield from conn.cursor( aiomysql.DictCursor )
+        cur = yield from conn.cursor(aiomysql.DictCursor)
         yield from cur.execute(sql.replace('?', '%s'), args or ())
         if size:
             rs = yield from cur.fetchmany(size)
@@ -62,6 +62,28 @@ def select( sql, args, size = None, database = 'excodout'):
         yield from cur.close()
         logger.info('Rows returned: %s' % len(rs))
         return rs
+
+
+@asyncio.coroutine
+def execute_many(sql, args, autocommit = True, database = 'excodout'):
+    log(sql)
+    global __poollist
+    with (yield from __poollist[database]) as conn:
+        if not autocommit:
+            yield from conn.begin()
+        try:
+            cur = yield from conn.cursor(aiomysql.DictCursor)
+            yield from cur.executemany(sql.replace('?', '%s'), args)
+            affected = cur.rowcount
+            if not autocommit:
+                yield from conn.commit()
+            #yield from cur.colse()
+        except BaseException as e:
+            if not autocommit:
+                yield from conn.rollback()
+            raise
+        return affected
+
 
 @asyncio.coroutine
 def execute(sql, args, autocommit = True, database = 'excodoout'):
@@ -74,13 +96,17 @@ def execute(sql, args, autocommit = True, database = 'excodoout'):
             yield from cur.execute(sql.replace('?', '%s'), args)
             affected = cur.rowcount
             if not autocommit:
-                yield from cur.commit()
+                yield from conn.commit()
             #yield from cur.colse()
         except BaseException as e:
             if not autocommit:
-                yield from cur.rollback()
+                yield from conn.rollback()
             raise
         return affected
+
+def get_pool(database ="excodout"):
+    global __poollist
+    return __poollist[database]
 
 def create_args_string(num):
     L = []
@@ -95,9 +121,74 @@ check_symbol用以检查给定对象是否包含不支持的字符，
 def check_symbol(k,symbol=".,\"\'\\"):
     pass
 
+# just for test
+def print_rows(rows, num=0, recur=True):
+    if not recur:
+        for row in rows:
+            if row[3] is not None:
+                show = row[3][:30]
+            else:
+                show = "NoneType"
+            print("\n" + row[0] + "\n" + row[1] + "\n" + str(row[5]) + "\n"  + show + "......")
+    else:
+        for row in rows:
+            if type(row) == dict:
+                num += 1
+                if row["data"] is not None:
+                    show = row["data"][:30]
+                else:
+                    show = "NoneType"
+                print("\n" + str(num) + "\n"+ row["mate_format"] + "\n" + row["path"] + "\n"  + show + "......")
+            else:
+                print_rows(row, num)
 
 
-def iterObj(obj, rows  ,path ):
+
+# 查询  自增id(下一个autoincrement值)
+# 参考网址 https://www.cnblogs.com/tommy-huang/p/5602125.html
+@asyncio.coroutine
+def select_autoincrement(table_name, cur=None, database="excodout"):
+    sql = """SELECT auto_increment FROM information_schema.tables where table_schema=? and table_name=?"""
+    # sql = """SELECT auto_increment FROM information_schema.tables where table_schema='fortest' and table_name='users_note'"""
+    args = (database, table_name)
+    # rs = yield from select(sql, args, database="fortest")
+    rs = yield from select(sql, args, cur=cur, database=database)
+    return rs[0]["auto_increment"]
+
+
+def ex_store(v, longText):
+    vHash = hashlib.sha256(v.encode("utf-8")).hexdigest()
+    if vHash in longText.keys():
+        if v != longText[vHash]:
+            logger.warn("---------||                    ||-----------------")
+            logger.warn("---------||   惊现HASH碰撞!!    ||-----------------")
+            logger.warn("---------||   惊现HASH碰撞!!    ||-----------------")
+            logger.warn("---------||                    ||-----------------")
+            logger.warn("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+            logger.warn(v)
+            logger.warn("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+            logger.warn(longText[vHash])
+            logger.warn("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+            longText[vHash] = v
+    else:
+        longText[vHash] = v
+    v = vHash
+    return v
+
+
+def create_rows(rows, num, order, result):
+    for row in rows:
+        if type(row) == dict:
+            if "result" in row.keys():
+                num[0] += 1
+                final = row["result"] + [hashlib.sha1(row["result"][0].encode("utf-8")).digest(), num[0], order]
+            elif "add" in row.keys():
+                final = row["add"][:-1] + [hashlib.sha1(row["add"][0].encode("utf-8")).digest(),  row["add"][-1:], order]
+            result.append(final)
+        else:
+            create_rows(row, num, order, result)
+
+def iterObj(obj, rows, path, longText, table = None ):
     child_rows = []
     if type(obj) == dict:
         for k, v in obj.items():
@@ -110,14 +201,42 @@ def iterObj(obj, rows  ,path ):
             elif type(v) == dict:
                 mate_format = "Object"
                 data = None
-                iterObj(v, child_rows, this_path)
+                iterObj(v, child_rows, this_path, longText)
             elif type(v) == list:
                 mate_format = "Array"
                 data = None
-                iterObj(v, child_rows, this_path + ".")
+                iterObj(v, child_rows, this_path + ".", longText)
             elif type(v) == str:
                 mate_format = "String"
-                # todo: 这里需要添加一个判定数据长度的函数，和一段长数据转储程序
+                # todo : 这里需要添加一个判定数据长度的函数，和一段长数据转储程序
+                """
+                我感觉也可以在sql内部用触发器去实现转储和引用计数，
+                暂时重心不在这边，所以写一个超长截取的临时代码
+                """
+                # if len(v) > 1200:
+                if len(v) > 120:
+                    v = ex_store(v, longText)
+                    mate_format = "exStorage"
+                    """
+                    vHash = hashlib.sha256(v.encode("utf-8")).digest()
+                    if vHash in longText.keys():
+                        if v != longText[vHash]:
+                            logger.warn("---------||                    ||-----------------")
+                            logger.warn("---------||   惊现HASH碰撞!!    ||-----------------")
+                            logger.warn("---------||   惊现HASH碰撞!!    ||-----------------")
+                            logger.warn("---------||                    ||-----------------")
+                            logger.warn("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+                            logger.warn(v)
+                            logger.warn("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+                            logger.warn(longText[vHash])
+                            logger.warn("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+                            longText[vHash] = v
+                    else:
+                        longText[vHash] = v
+                    v = vHash
+                    # v = v[:1200]
+                    # mate_format = "CUT CUT"
+                    """
                 data = v
             elif type(v) == float or type(v) == int:
                 mate_format = "Number"
@@ -131,7 +250,8 @@ def iterObj(obj, rows  ,path ):
             else:
                 # 数据类型超出处理范围应当报错
                 pass
-            row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
+            # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
+            row = {"result": [this_path,  mate_format,  mate,  data]}
             child_rows.append(row)
     elif type(obj) == list:
         for k, v in enumerate(obj):
@@ -144,13 +264,24 @@ def iterObj(obj, rows  ,path ):
             elif type(v) == dict:
                 mate_format = "Object"
                 data = None
-                iterObj(v, child_rows, this_path)
+                iterObj(v, child_rows, this_path, longText)
             elif type(v) == list:
                 mate_format = "Array"
                 data = None
-                iterObj(v, child_rows, this_path + ".")
+                iterObj(v, child_rows, this_path + ".", longText)
             elif type(v) == str:
-                mate_format = "Array"
+                mate_format = "String"
+                # todo : 这里需要添加一个判定数据长度的函数，和一段长数据转储程序
+                """
+                我感觉也可以在sql内部用触发器去实现转储和引用计数，
+                暂时重心不在这边，所以写一个超长截取的临时代码
+                """
+                # if len(v) > 1200:
+                if len(v) > 120:
+                    v = ex_store(v, longText)
+                    mate_format = "exStorage"
+                    # v = v[:1200]
+                    # mate_format = "CUT CUT"
                 data = v
             elif type(v) == float or type(v) == int:
                 mate_format = "Number"
@@ -164,8 +295,45 @@ def iterObj(obj, rows  ,path ):
             else:
                 # 数据类型超出处理范围应当报错
                 pass
-            row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
+            row = {"result": [this_path,  mate_format,  mate,  data]}
+            # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
             child_rows.append(row)
+    else:
+        mate = "notObj"
+        this_path = table + "." + mate
+        mate_format = "NoneType"
+        data = None
+        # 对象的附加信息是基于mate_order区别的，当mate_order的值为负，表示此信息非对象原生，而是附加信息
+        # 不同负数值的具体含义，参见自定义的数据库说明文档，-2表示传进来的对象不是标准的对象格式(严格的说，不是
+        # dict或者list),这里考虑最大的兼容性，采用附加信息的方式存储
+        mate_order = -2
+        if type(obj) == str:
+            mate_format = "String"
+            # todo : 这里需要添加一个判定数据长度的函数，和一段长数据转储程序
+            """
+            我感觉也可以在sql内部用触发器去实现转储和引用计数，
+            暂时重心不在这边，所以写一个超长截取的临时代码
+            """
+            # if len(obj) > 1200:
+            if len(obj) > 120:
+                obj = ex_store(obj, longText)
+                mate_format = "exStorage"
+                # obj = obj[:1200]
+                # mate_format = "CUT CUT"
+            data = obj
+        elif type(obj) == float or type(obj) == int:
+            mate_format = "Number"
+            data = str(obj)
+        elif type(obj) == bool:
+            mate_format = "Bool"
+            data = str(obj)
+        elif obj is None:
+            mate_format = "None"
+            data = None
+        else:
+            # 数据类型超出处理范围应当报错
+            pass
+        child_rows = {"add": [this_path,  mate_format,  mate,  data, mate_order]}
     rows.append(child_rows)
 
 """
@@ -310,13 +478,15 @@ class Model(dict,metaclass = ModelMetaclass):
     # （例如auto increment，timestamp）的表
     #  生成insert语句的支持
     """
-    def create_insert_string(self, columns, escapes):
-        columns = copy.copy(columns)
-        if self.__primary_key__ not in columns:
-            columns.append(self.__primary_key__)
+    def create_insert_string(self, columns=[], escapes=[]):
+        if not columns and not escapes:
+            columns = copy.copy(self.__fields__)
+            escapes = self.__escape_column__
+            if self.__primary_key__ not in columns:
+                columns.append(self.__primary_key__)
         fields = list(map(lambda f: '`%s`' % f, filter(lambda x: x not in escapes, columns)))
         sql = 'insert into `%s` (%s) values (%s)' % (
-            self.__table__, ','.join(fields), create_args_string(len(fields)))
+                self.__table__, ','.join(fields), create_args_string(len(fields)))
         return sql
 
     def getValue(self, key):
@@ -356,30 +526,88 @@ class Model(dict,metaclass = ModelMetaclass):
     # saveObj采用递归迭代的方式，将对象分解成一个个mate(元)，以及必要信息
         每个mate对应一行，存储到数据库中
     # saveObj是所有json转化来的对象都应该是通用的，应该是通用方法
+    # ·显然，本方法是有特异性的，针对的是<存储Obj>的表格
+            这些表格的列必须包含如下固定格式
+                path, mate, mate_hash, mate_order, order, mate_format, data
     """
+
     @classmethod
     @asyncio.coroutine
     def saveObj(cls, obj, **kw):
-        if type(obj) != dict:
-            rs = "-----|| This is %s.saveObj||---( Failed,Ojb must be dict! )--------------------------" % cls.__table__
-            logger.warn( rs )
-            return rs
-        else:
-            path = ""
-            rows = []
-            iterObj(obj, rows, path)
-            def print_rows(rows, num):
-                for row in rows:
-                    if type(row) == dict:
-                        num += 1
-                        if row["data"] is not None:
-                            show = row["data"][:30]
+        database = "fortest"
+        pool = get_pool(database)
+        with (yield from pool) as conn:
+            yield from conn.begin()
+            try:
+                cur = yield from conn.cursor(aiomysql.DictCursor)
+                """
+                SF:增强了程序兼容性，这里不需要了
+                # 检查传进来的是否是对象(dict)
+                if type(obj) != dict:
+                    rs = "-----|| This is %s.saveObj||---( Failed,Obj must be dict! )--------------------------" % cls.__table__
+                    logger.warn(rs)
+                """
+                # 首先执行必要的检查，包括对表格是否是<存储Obj>的表格的检查
+                OBJTABLE = ["path", "mate_format", "mate", "data", "mate_hash", "mate_order", "order"]
+                if not set(OBJTABLE) <= set(cls.__fields__ + [cls.__primary_key__]):
+                    rs = "-----|| This is %s.saveObj||---( Failed,Model must be kind of <Obj saved table> ! )" \
+                         "--------------------------" % cls.__table__
+                    logger.warn(rs)
+                else:
+                    rows_pre = []
+                    long_text = {}
+                    iterObj(obj, rows_pre, "", long_text, cls.__table__)
+                    # long_text_len = len(long_text)
+                    # logger.warn("++++++++++++++||length of longText: %d+++++++++++++++++++++++++++++++++++++++++++++++++++" % long_text_len)
+                    # todo: 新值插入，旧值增加引用计数测试成功，只有抛出错误需要修正
+                    for k, v in long_text.items():
+                        yield from cur.execute("""select  `data`,`data_hash`,`quote` FROM text_data_note where `data_hash` = %s""",k)
+                        query_rows = yield from cur.fetchall()
+                        if not query_rows:
+                            yield from cur.execute("""INSERT INTO text_data_note( `data`,`data_hash`,`quote` ) VALUES( %s,%s,%s)""",
+                                        (v, k, 1))
                         else:
-                            show = "NoneType"
-                        print("\n\n" + str(num) + "\n"+ row["path"] + "\n" + row["mate_format"] + "\n" + show + "......")
-                    else:
-                        print_rows(row, num)
-            print_rows(rows, 0)
+                            if query_rows[0]["data"] == v:
+                                new_quote = query_rows[0]["quote"] + 1
+                                yield from cur.execute("""UPDATE text_data_note SET `quote` = %s WHERE `data_hash` = %s """,
+                                                       (new_quote, query_rows[0]["data_hash"]))
+                            else:
+                                # todo: 编写一个正规的错误类型
+                                raise """-------------||                ||-----------------
+                                        -------------|| 发现Hash碰撞！！||-----------------
+                                        -------------||                 ||-----------------"""
+
+                    # todo: 这里有一个BUG
+                    """
+                        这里写的代码是异步代码，也就是对并发支持度高，对于读取来说
+                        并不会产生问题，但是对于写入，如果写入的某些值是基于前面
+                        的运行结果，那么就会出错。例如一个写入的程序还没执行完毕，
+                        另一个写入程序获得的auto inrement的值就可能是"老"的值，
+                        这显然是个错误。
+                            看来写入，能不能并发，该不该并发，都要好好研究考虑
+                    """
+                    yield from cur.execute("""SELECT auto_increment FROM information_schema.tables where table_schema=%s and table_name=%s""",(database,cls.__table__))
+                    order = yield from cur.fetchall()
+                    order = order[0]["auto_increment"]
+                    # order = yield from select_autoincrement(cls.__table__, database="fortest")
+                    rows_in = []
+                    create_rows(rows_pre, [0, ], order, rows_in)
+                    # print_rows(rows_in, recur=False)
+                    fields = list(map(lambda f: '`%s`' % f, OBJTABLE))
+                    sql = 'insert into `%s` (%s) values (%s)' % ( cls.__table__, ','.join(fields), create_args_string(len(OBJTABLE)))
+                    # rs = yield from execute_many(sql, rows_in, database="fortest")
+                    yield from cur.executemany(sql.replace('?', '%s'), rows_in)
+                    rs = cur.rowcount
+                    rs = "-----|| This is %s.saveObj||---(Insert %s rows...)--------------------------" % (cls.__table__, rs)
+                    logger.info(rs)
+                    # return rows_in
+                    yield from conn.commit()
+                    # yield from cur.colse()
+                    return rs
+            except BaseException as e:
+                yield from conn.rollback()
+                raise
+
 
 
 
@@ -442,11 +670,13 @@ class Model(dict,metaclass = ModelMetaclass):
         pre_args = list(map(self.getValueOrDefault,self.__fields__))
         pre_args.append(self.getValueOrDefault(self.__primary_key__))
         args = []
+        # 这pre_args的返回值是list，第一个元素是相应列的value值，第二个元素如果是
+        # False表示这个元素不是数据库自动填充的，所以将其value添加进参数列表args
         for arg in pre_args:
             if arg[1] is False:
                 args.append(arg[0])
         # creat_sql = self.__insert__
-        sql = self.create_insert_string(self.__fields__, self.__escape_column__)
+        sql = self.create_insert_string()
         rows = yield from execute(sql, args, database="fortest")
         while len(self.__escape_column__):
             self.__escape_column__.pop()

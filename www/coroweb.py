@@ -206,7 +206,11 @@ class RequestHandler(object):
             for name in self._required_kw_args:
                 if not name in kw:
                     return web.HTTPBadRequest('Missing argument: %s' % name)
-                logger.info('call with args: %s' % str(kw))
+                kw_str = "{\n"
+                for k, v in kw.items():
+                    kw_str = kw_str + "\t" + str(k)[:30] + "\t\t" + str(v)[:60] + "\n"
+                kw_str = kw_str + "}"
+                logger.info('call with args: %s' % kw_str)
         try:
             r = yield from self._func(**kw)
             return r
