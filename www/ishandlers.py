@@ -12,7 +12,7 @@ from coroweb import get, post
 from apis import Page, APIError, APIPermissionError, APIValueError, APIResourceNotFoundError
 
 from modelsI import getClipActionNote, getNotebooksNote, getAccountsDataNote, getSmartFilingInfoNote, getFilingInfoNote, \
-setSelectedAccountNote, getTagsNote, submissionDataNote
+setSelectedAccountNote, getTagsNote, submissionDataNote, tableForTest
 
 from models import User, Comment, Blog, next_id\
     , UsersNote, UserUrlsNote, DataNote, TableRegisterNote
@@ -77,6 +77,7 @@ def miHandJsonObj(request, *, name, action, obj={}):
                 , "dispatchPromise\\getTags": getTagsNote
                 , "dispatchPromise\\setSelectedAccount": setSelectedAccountNote
                 , "submissionDataMsg":  submissionDataNote
+                , "tableForTest":  tableForTest
                 , "accountUrls": UserUrlsNote}
 
     if name == "UNKNOWN":
@@ -87,6 +88,9 @@ def miHandJsonObj(request, *, name, action, obj={}):
         if action == "save":
             model = haveModels[name]
             rs = yield from model.saveObj(obj)
+        elif action == "get":
+            model = haveModels[name]
+            rs = yield from model.get_object()
         """
         # objInstance = haveModels[name](**kw)
         # 为临时测试代码
@@ -103,7 +107,7 @@ def miHandJsonObj(request, *, name, action, obj={}):
             yield from objInstance.save()
         """
     else:
-        text = "SaveObj Failed: No Model for obj --> %s" % name
+        text = "HandObj Failed: No Model for obj --> %s" % name
         printObj(obj, text)
         rs = "-----|| This is miHandJsonObj ||-----------------------------"
     return rs

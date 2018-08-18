@@ -9,6 +9,8 @@ select count(data_hash) from text_data_note;
 select sum(`quote`) from text_data_note;
 select  `data`,`data_hash`,`quote` from text_data_note where `data_hash` = "dsfds";
 select * from submission_data_note;
+select * from submission_data_note where mate ="guid";
+select * from submission_data_note where mate ="title";
 
 -- ----------------------------------------------------------------------------------
 select * from getaccountsdata_note order by id desc;

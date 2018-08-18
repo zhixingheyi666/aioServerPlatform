@@ -188,6 +188,17 @@ def create_rows(rows, num, order, result):
         else:
             create_rows(row, num, order, result)
 
+"""
+0.迭代处理obj，obj将成为数组，他的每个mate将成为数组的一个元素，
+    如果obj是嵌套的，迭代出的数组也是嵌套的。
+1.当传入的obj的值不是dict或者array，即obj是string、int、float、bool类型，经测试iterObj会按照既定程序，
+    向数据库插入mate_order为-2，mate值为notObj，path为[[table name]].notObj的，形式如下的行
+        '128', 'table_for_test.notObj', 'notObj', ?, '-2', '128', '2018-08-14 15:18:57', 'Number', '3.1415926'
+2.当传入的obj的值是空dict或者空array，
+    向数据库插入mate_order为-2，mate值为emptyObj，path为[[table name]].emptyObj的，形式如下的行
+        '128', 'table_for_test.emptyObj', 'emptyObj', ?, '-2', '128', '2018-08-14 15:18:57', 'Dcit', None
+
+"""
 def iterObj(obj, rows, path, longText, table = None ):
     child_rows = []
     if type(obj) == dict:
@@ -200,11 +211,11 @@ def iterObj(obj, rows, path, longText, table = None ):
                 pass
             elif type(v) == dict:
                 mate_format = "Object"
-                data = None
+                data = len(v)
                 iterObj(v, child_rows, this_path, longText)
             elif type(v) == list:
                 mate_format = "Array"
-                data = None
+                data = len(v)
                 iterObj(v, child_rows, this_path + ".", longText)
             elif type(v) == str:
                 mate_format = "String"
@@ -253,6 +264,14 @@ def iterObj(obj, rows, path, longText, table = None ):
             # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
             row = {"result": [this_path,  mate_format,  mate,  data]}
             child_rows.append(row)
+        if path == "" and len(obj) == 0:
+            mate = "emptyObj"
+            this_path = table + "." + mate
+            mate_format = "Object"
+            mate_order = -2
+            data = 0
+            child_rows = {"add": [this_path,  mate_format,  mate,  data, mate_order]}
+
     elif type(obj) == list:
         for k, v in enumerate(obj):
             mate = str(k)
@@ -263,11 +282,11 @@ def iterObj(obj, rows, path, longText, table = None ):
                 pass
             elif type(v) == dict:
                 mate_format = "Object"
-                data = None
+                data = len(v)
                 iterObj(v, child_rows, this_path, longText)
             elif type(v) == list:
                 mate_format = "Array"
-                data = None
+                data = len(v)
                 iterObj(v, child_rows, this_path + ".", longText)
             elif type(v) == str:
                 mate_format = "String"
@@ -298,6 +317,13 @@ def iterObj(obj, rows, path, longText, table = None ):
             row = {"result": [this_path,  mate_format,  mate,  data]}
             # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
             child_rows.append(row)
+        if path == "" and len(obj) == 0:
+            mate = "emptyObj"
+            this_path = table + "." + mate
+            mate_format = "Array"
+            mate_order = -2
+            data = 0
+            child_rows = {"add": [this_path,  mate_format,  mate,  data, mate_order]}
     else:
         mate = "notObj"
         this_path = table + "." + mate
@@ -450,6 +476,7 @@ class ModelMetaclass(type):
         attrs['__mappings__'] = mappings #保存属性和映射的关系
         attrs['__escape_column__'] = set()
         attrs['__table__'] = tableName
+        attrs['__exStorage__'] = "text_data_note"
         attrs['__primary_key__'] = primaryKey #主键属性名
         # 这里的fields采用list是因为后面sql语句中要与参数位置一一对应，需要有确定的顺序
         attrs['__fields__'] = fields #除主键外的属性名
@@ -517,6 +544,136 @@ class Model(dict,metaclass = ModelMetaclass):
                 logger.info('Using database auto fill value for %s: %s' % (key, str(value)))
         return [value, auto_fill]
 
+
+    @classmethod
+    @asyncio.coroutine
+    def get_object(cls, *,order=None,json_string=True,include_remark=True, **kw):
+        database = "fortest"
+        pool = get_pool(database)
+        with (yield from pool) as conn:
+            yield from conn.begin()
+            try:
+                cur = yield from conn.cursor(aiomysql.DictCursor)
+                if order is None:
+                    """
+                    ··aiomysql pymysql
+                        在拼接sql查询语句的时候，
+                            table的名字不能够作为查询的参数
+                        必须提前在查询语句中用字串拼接好，所以下面语句会报错
+                        # yield from cur.execute("SELECT max(`order`) FROM %s", cls.__table__)
+                    """
+                    yield from cur.execute("""SELECT max(`order`) FROM %s""" % cls.__table__)
+                    order = yield from cur.fetchall()
+                    order = order[0]["max(`order`)"]
+                """
+                1.获取对象原生信息
+                2.获取对象附加信息，分别处理不同类型的附加信息
+                3.将获取的信息组合成json字串或者python的dict对象结构
+                4.返回结果
+                """
+                # 根据需要，获取对象附加信息
+                if include_remark:
+                    sql = "select * from %s " % cls.__table__ + "where `mate_order` < 0 order by `mate_order`"
+                    yield from cur.execute(sql)
+                    add_pre_rows = yield from cur.fetchall()
+                    add_data = {}
+                    ex_storage = []
+                    object_add_data = {}
+                    """
+                         # 附加信息如果有相同的mate_order,我们视为同一条附加信息，
+                         # 同一条附加信息也应当由相同的mate
+                    """
+                    for pre_row in add_pre_rows:
+                        if pre_row["mate_order"] > -10000:
+                            # 如果正常执行saveObj写入程序，得到的path一定是字符串，这里将其设为数字-1，后面
+                            # 就很容易与其他mate注释的path区分开，path值是一个整数-1的，就是整个Object的注释
+                            pre_row["path"] = -1
+                            pre_row["mate_order"] = -1
+                        pre_path = pre_row["path"]
+                        pre_mate = pre_row["mate"]
+                        # pre_path用来区分注释属于对象的哪一个mate，
+                        # pre_mate用来区分同一个mate的不同条目的注释，
+                        # order用来区分同一条注释的前后更新
+                        def ex_hand(pre_row):
+                            if pre_row["mate_format"] == "exStorage":
+                                ex_storage.append(pre_row["data"])
+                        if pre_path not in add_data.keys():
+                            add_data[pre_path] = {}
+                            add_data[pre_path][pre_mate] = pre_row
+                            ex_hand(pre_row)
+                        elif pre_mate not in add_data[pre_path].keys():
+                            add_data[pre_path][pre_mate] = pre_row
+                            ex_hand(pre_row)
+                            # 因为附加信息的order存储时候取反成了负数，所以order值较小的是新的信息
+                            # 将覆盖旧的信息
+                        elif add_data[pre_path][pre_mate]["order"] > pre_row["order"]:
+                            add_data[pre_path][pre_mate] = pre_row
+                            ex_hand(pre_row)
+                        """
+                        # 大于-10000部分为整个对象的注释
+                        if pre_order > -10000:
+                            if pre_order not in object_add_data.keys():
+                                object_add_data[pre_order] = pre_row
+                            elif object_add_data[pre_order]["order"] > pre_row["order"]:
+                                object_add_data[pre_order] = pre_row
+                        else:
+                        """
+
+                    # 获取path对应的mate_order编号
+                    mate_order_map = {}
+                    sql = "select `mate_order` from %s" % cls.__table__ + " where `order` = %s and `path` = %s"
+                    for p in add_data.keys():
+                        yield from cur.execute(sql, (order, p))
+                        mate_order = yield from cur.fetchall()
+                        if mate_order:
+                            mate_order_map[mate_order[0]["mate_order"]] = p
+                    # 提取exStorage存储的数据
+                    ex_map = {}
+                    for ex in ex_storage:
+                        sql = "select `data` from %s" % cls.__exStorage__ + " where `data_hash` = %s"
+                        yield from cur.execute(sql, (ex))
+                        ex_data = yield from cur.fetchall()
+                        if ex_data:
+                            ex_map[ex] = ex_data[0]["data"]
+                    # 构成json字串
+                    for k, v in add_data.items():
+                        new_v = '"..remark":{'
+                        for kk, vv in v.items():
+                            new_v = new_v + '"' + kk + '"' + ':'
+                            pre_format = vv["mate_format"]
+                            if pre_format != "String":
+                                if pre_format == "Number" or pre_format == "Bool":
+                                    new_v = new_v + vv["data"] + ","
+                                elif pre_format == "exStorage":
+                                    # new_v = new_v + '"' + ex_map[vv["data"]] + '"' + ","
+                                    new_v = new_v + '"exStorage调试 -- > ' + vv["data"] + '"' + ","
+                                else:
+                                    new_v = new_v + '"临时调试 -- > ' + vv["data"] + '"' + ","
+                            else:
+                                new_v = new_v + '"' + vv["data"] + '"' + ","
+                        new_v = new_v[:-1] + "}"
+                        add_data[k] = new_v
+
+
+
+
+                # 获取对象原生信息
+                sql = "select * from %s " % cls.__table__ + "where `order` = %s order by `mate_order`"
+                yield from cur.execute(sql, order)
+                origin_pre_rows = yield from cur.fetchall()
+            except BaseException as e:
+                logger.warn(e)
+                pass
+        """
+            tips_SF:这里返回json字串中，每一个键和非Object非Array的值，必须用双引号，整个字符串用单引号包裹，
+            下面的样子会导致解析错误
+            return "{'..remark': {'algorithm': 'algorithm', 'ele': 'lll', 'theta': 'theta'},'colon equals': {'..remark': 'to denote setting a variable on the left hand side','style': ':='}, 'gradient': 'gradient descent', 'notation': {'colon': ':'}}"
+        """
+        return '{' + add_data[-1] + '}'
+        # return '{"..remark": {"algorithm": "algorithm", "ele": "lll", "theta": "theta"},"colon equals": {"..remark": "to denote setting a variable on the left hand side","style": ":="}, "gradient": "gradient descent", "notation": {"colon": ":"}}'
+        # return   '{"gradient": "gradient descent", "..remark": {"algorithm": "algorithm", "ele": "lll", "theta": "theta"}, "not ation": {"colon": ":"}, "colon equals": {"style": ":=", "..remark": "to denote setting a variable on the left hand side "}}'
+
+
     """
     # saveObj函数接收一个由json转化来的对象，相应代码如下：
         .文件coroweb.py中
@@ -530,7 +687,6 @@ class Model(dict,metaclass = ModelMetaclass):
             这些表格的列必须包含如下固定格式
                 path, mate, mate_hash, mate_order, order, mate_format, data
     """
-
     @classmethod
     @asyncio.coroutine
     def saveObj(cls, obj, **kw):
@@ -540,13 +696,6 @@ class Model(dict,metaclass = ModelMetaclass):
             yield from conn.begin()
             try:
                 cur = yield from conn.cursor(aiomysql.DictCursor)
-                """
-                SF:增强了程序兼容性，这里不需要了
-                # 检查传进来的是否是对象(dict)
-                if type(obj) != dict:
-                    rs = "-----|| This is %s.saveObj||---( Failed,Obj must be dict! )--------------------------" % cls.__table__
-                    logger.warn(rs)
-                """
                 # 首先执行必要的检查，包括对表格是否是<存储Obj>的表格的检查
                 OBJTABLE = ["path", "mate_format", "mate", "data", "mate_hash", "mate_order", "order"]
                 if not set(OBJTABLE) <= set(cls.__fields__ + [cls.__primary_key__]):
@@ -572,10 +721,13 @@ class Model(dict,metaclass = ModelMetaclass):
                                 yield from cur.execute("""UPDATE text_data_note SET `quote` = %s WHERE `data_hash` = %s """,
                                                        (new_quote, query_rows[0]["data_hash"]))
                             else:
-                                # todo: 编写一个正规的错误类型
-                                raise """-------------||                ||-----------------
-                                        -------------|| 发现Hash碰撞！！||-----------------
-                                        -------------||                 ||-----------------"""
+                                # SF:最好编写一个正规的错误类型
+                                raise RuntimeError("""-------------||                ||-----------------
+                                -------------|| 发现Hash碰撞！！||-----------------
+                                -------------||                 ||-----------------
+                                -------------||%s||-----------------
+                                -------------||%s||-----------------
+                                -------------||%s||-----------------""" % (v, query_rows[0]["data"], k))
 
                     # todo: 这里有一个BUG
                     """

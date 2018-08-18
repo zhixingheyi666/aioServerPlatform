@@ -15,6 +15,21 @@ from orm import BinaryField, IntegerField, TimeStampField
 def next_id():
     return '%015d%s000' % (int(time.time() * 1000), uuid.uuid4().hex)
 
+class tableForTest(Model):
+    # 类映射的表名
+    __table__ = 'table_for_test'
+
+    # 定义类的属性到列的映射
+    id = IntegerField(primary_key=True,  colType='int(11)', auto_fill=True)
+    path = StringField(colType='varchar(800)')
+    mate = StringField(colType='varchar(255)')
+    mate_hash = BinaryField(colType='binary(20)')
+    mate_order = IntegerField(colType='smallint')
+    order = IntegerField(colType='int(11)')
+    update_time = TimeStampField(auto_fill=True)
+    mate_format = StringField(colType='varchar(30)')
+    data = StringField(colType='varchar(1200)')
+
 class getClipActionNote(Model):
     # 类映射的表名
     __table__ = 'getClipAction_note'
