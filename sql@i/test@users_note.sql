@@ -1,12 +1,14 @@
-select * from bookmurl;
-use fortest;
-select * from userr_ever;
--- drop table userr_ever;
-use excodout;
-select * from users;
+
+
+
+SELECT max(`order`) FROM users_note;
+select * from users_note order by id desc;
+select * from users_note where `order` >110000;
+select count(*) from users_note where `order` >110000;
+-- delete from users_note where `order` >110000;
+
 
 select * from users_note where mate_order = 3 and `order` = 90532;
-
 select * from fmate_code;
 select * from fline_code;
 select * from hash_code where hashid>89;
@@ -16,7 +18,7 @@ select * from hash_code order by hashid;
 select *from hash_code where hashid in (3,1,90,4,0,2);
 
 select * from users_note order by id desc;
-
+select * from users_note where mate_order <0 order by id desc;
 
 select last_insert_id() from users_note;
 

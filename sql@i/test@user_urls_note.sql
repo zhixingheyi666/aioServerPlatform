@@ -9,6 +9,8 @@ select * from fmate_code;
 select * from fline_code;
 select * from hash_code where hashid>89;
 select * from user_urls_note order by id desc;
+select * from user_urls_note where mate_order <0 order by id desc;
+select * from user_urls_note where mate_order <0 order by `order`;
 select last_insert_id() from user_urls_note;
 
 

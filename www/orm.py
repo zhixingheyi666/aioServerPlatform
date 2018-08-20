@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 __author__ = 'Master Wang'
@@ -11,45 +10,46 @@ import sys
 # sysFc = 'D:\\python_learn\\sysFc'
 # sys.path.append(sysFc)
 
-#logger = crLog(fname = 'D:\桌面\orm.log')
-#from logSf10 import logger 
-#logger = logger
+# logger = crLog(fname = 'D:\桌面\orm.log')
+# from logSf10 import logger
+# logger = logger
 import random
 
 # self#
 # 改造，用一个字典结构存储多个链接池，测试
 __poollist = {}
 
-def log(sql, args = ()):
-    logger.info('SQL: %s' % sql)
 
-# In[3]:
+# 查询  自增id(下一个autoincrement值)
+# 参考网址 https://www.cnblogs.com/tommy-huang/p/5602125.html
+@asyncio.coroutine
+def select_autoincrement(table_name, cur=None, database="excodout"):
+    sql = """SELECT auto_increment FROM information_schema.tables WHERE table_schema=? AND table_name=?"""
+    # sql = """SELECT auto_increment FROM information_schema.tables where table_schema='fortest' and table_name='users_note'"""
+    args = (database, table_name)
+    # rs = yield from select(sql, args, database="fortest")
+    rs = yield from select(sql, args, cur=cur, database=database)
+    return rs[0]["auto_increment"]
 
 
 @asyncio.coroutine
 def create_pool(loop, **kw):
-    logger.info('Create database connction pool...')
+    logger.info('CREATE DATABASE connction pool...')
     # self#
     # 改造，用于每次调用按需生成不同链接池，测试
     global __poollist
-    ipool = yield from aiomysql.create_pool(
-        #host = kw.get('host','127.0.0.1'),
-        host=kw.get('host', 'localhost'),
-        port=kw.get('port', 3306),
-        user=kw['user'],
-        password=kw['password'],
-        db=kw['database'],
-        charset=kw.get('charset', 'utf8'),
-        autocommit=kw.get('autocommit', True),
-        maxsize=kw.get('maxsize', 10),
-        minsize=kw.get('minsize', 1), loop=loop)
+    ipool = yield from aiomysql.create_pool(  # host = kw.get('host','127.0.0.1'),
+        host=kw.get('host', 'localhost'), port=kw.get('port', 3306), user=kw['user'], password=kw['password'],
+        db=kw['database'], charset=kw.get('charset', 'utf8'), autocommit=kw.get('autocommit', True),
+        maxsize=kw.get('maxsize', 10), minsize=kw.get('minsize', 1), loop=loop)
     # 暂时用所要连接的数据库的名字命名不同的连接池，以后再完善命名方案
     __poollist[kw['database']] = ipool
+
 
 # 函数的返回rs是一个list，这个list的每个元素是一个dict，对应于数据库表中的一行
 
 @asyncio.coroutine
-def select( sql, args, size = None, database = 'excodout'):
+def select(sql, args, size=None, database='excodout'):
     log(sql, args)
     global __poollist
     with (yield from __poollist[database]) as conn:
@@ -65,7 +65,7 @@ def select( sql, args, size = None, database = 'excodout'):
 
 
 @asyncio.coroutine
-def execute_many(sql, args, autocommit = True, database = 'excodout'):
+def execute_many(sql, args, autocommit=True, database='excodout'):
     log(sql)
     global __poollist
     with (yield from __poollist[database]) as conn:
@@ -77,7 +77,7 @@ def execute_many(sql, args, autocommit = True, database = 'excodout'):
             affected = cur.rowcount
             if not autocommit:
                 yield from conn.commit()
-            #yield from cur.colse()
+                # yield from cur.colse()
         except BaseException as e:
             if not autocommit:
                 yield from conn.rollback()
@@ -86,7 +86,7 @@ def execute_many(sql, args, autocommit = True, database = 'excodout'):
 
 
 @asyncio.coroutine
-def execute(sql, args, autocommit = True, database = 'excodoout'):
+def execute(sql, args, autocommit=True, database='excodoout'):
     log(sql)
     with (yield from __poollist[database]) as conn:
         if not autocommit:
@@ -97,16 +97,85 @@ def execute(sql, args, autocommit = True, database = 'excodoout'):
             affected = cur.rowcount
             if not autocommit:
                 yield from conn.commit()
-            #yield from cur.colse()
+                # yield from cur.colse()
         except BaseException as e:
             if not autocommit:
                 yield from conn.rollback()
             raise
         return affected
 
-def get_pool(database ="excodout"):
+
+def log(sql, args=()):
+    logger.info('SQL: %s' % sql)
+
+
+def get_pool(database="excodout"):
     global __poollist
     return __poollist[database]
+
+
+def format_data(mate_format, data):
+    if mate_format != "String":
+        if mate_format == "Number":
+            # new_v = new_v + vv["data"] + ","
+            result = data
+        elif mate_format == "Bool":
+            # 下面两句是兼容旧的格式，新格式要求bool值需存储小写字符串以符合json的标准
+            if data == "True":
+                data = "true"
+            elif data == "False":
+                data = "false"
+            result = data
+        elif mate_format == "exStorage":
+            # new_v = new_v + '"' + ex_map[vv["data"]] + '"' + ","
+            # new_v = new_v + '"exStorage调试 -- > ' + vv["data"] + '"' + ","
+            result = '"exStorage调试 -- > ' + data + '"'
+        elif mate_format == "None":
+            result = "null"
+        else:
+            try:
+                data = str(data)
+            except BaseException as e:
+                logger.warn(e)
+                data = str(e)
+            result = '"临时调试 -- > ' + data + '"'
+    else:
+        # new_v = new_v + '"' + vv["data"] + '"' + ","
+        result = '"' + data + '"'
+    return result
+
+
+def create_json(rows, step, left_print):
+    json_result = ""
+    skip = False
+    while(len(left_print[0]) > 0):
+        iter_print = left_print[0]
+        for i in iter_print:
+            left_print[0] = left_print[0][1:]
+            if i == "{":
+                sub_json_value = create_json(rows, step, left_print)
+                if step[0] < len(rows):
+                    json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
+                    json_result += i
+                    json_result += sub_json_value + ','
+                    skip = True
+                    break
+                else:
+                    json_result += i
+                    json_result += sub_json_value
+                    return json_result
+            elif i == ".":
+                if not skip:
+                    json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
+                    json_result += format_data(rows[step[0]]["mate_format"], rows[step[0]]["data"]) + ','
+                skip = False
+                step[0] += 1
+            elif i == "}":
+                json_result = json_result[:-1] + i
+                return json_result
+            else:
+                logger.warn("---------------||orm.py Func create_json: unexcept character \"%s\"in iterPrint" % i)
+
 
 def create_args_string(num):
     L = []
@@ -114,12 +183,16 @@ def create_args_string(num):
         L.append('?')
     return ','.join(L)
 
+
 """
 check_symbol用以检查给定对象是否包含不支持的字符，
     例如本项目中，path不支持"."、双引号、单引号等
 """
-def check_symbol(k,symbol=".,\"\'\\"):
+
+
+def check_symbol(k, symbol=".,\"\'\\"):
     pass
+
 
 # just for test
 def print_rows(rows, num=0, recur=True):
@@ -129,7 +202,7 @@ def print_rows(rows, num=0, recur=True):
                 show = row[3][:30]
             else:
                 show = "NoneType"
-            print("\n" + row[0] + "\n" + row[1] + "\n" + str(row[5]) + "\n"  + show + "......")
+            print("\n" + row[0] + "\n" + row[1] + "\n" + str(row[5]) + "\n" + show + "......")
     else:
         for row in rows:
             if type(row) == dict:
@@ -138,22 +211,9 @@ def print_rows(rows, num=0, recur=True):
                     show = row["data"][:30]
                 else:
                     show = "NoneType"
-                print("\n" + str(num) + "\n"+ row["mate_format"] + "\n" + row["path"] + "\n"  + show + "......")
+                print("\n" + str(num) + "\n" + row["mate_format"] + "\n" + row["path"] + "\n" + show + "......")
             else:
                 print_rows(row, num)
-
-
-
-# 查询  自增id(下一个autoincrement值)
-# 参考网址 https://www.cnblogs.com/tommy-huang/p/5602125.html
-@asyncio.coroutine
-def select_autoincrement(table_name, cur=None, database="excodout"):
-    sql = """SELECT auto_increment FROM information_schema.tables where table_schema=? and table_name=?"""
-    # sql = """SELECT auto_increment FROM information_schema.tables where table_schema='fortest' and table_name='users_note'"""
-    args = (database, table_name)
-    # rs = yield from select(sql, args, database="fortest")
-    rs = yield from select(sql, args, cur=cur, database=database)
-    return rs[0]["auto_increment"]
 
 
 def ex_store(v, longText):
@@ -176,17 +236,21 @@ def ex_store(v, longText):
     return v
 
 
-def create_rows(rows, num, order, result):
+def create_rows(rows, num, order, result, iter_print):
     for row in rows:
         if type(row) == dict:
             if "result" in row.keys():
                 num[0] += 1
                 final = row["result"] + [hashlib.sha1(row["result"][0].encode("utf-8")).digest(), num[0], order]
+                iter_print = iter_print + "."
             elif "add" in row.keys():
-                final = row["add"][:-1] + [hashlib.sha1(row["add"][0].encode("utf-8")).digest(),  row["add"][-1:], order]
+                final = row["add"][:-1] + [hashlib.sha1(row["add"][0].encode("utf-8")).digest(), row["add"][-1:], order]
             result.append(final)
         else:
-            create_rows(row, num, order, result)
+            iter_print = iter_print + create_rows(row, num, order, result, "{")
+    iter_print = iter_print + "}"
+    return iter_print
+
 
 """
 0.迭代处理obj，obj将成为数组，他的每个mate将成为数组的一个元素，
@@ -199,7 +263,9 @@ def create_rows(rows, num, order, result):
         '128', 'table_for_test.emptyObj', 'emptyObj', ?, '-2', '128', '2018-08-14 15:18:57', 'Dcit', None
 
 """
-def iterObj(obj, rows, path, longText, table = None ):
+
+
+def iterObj(obj, rows, path, longText, table=None):
     child_rows = []
     if type(obj) == dict:
         for k, v in obj.items():
@@ -254,7 +320,7 @@ def iterObj(obj, rows, path, longText, table = None ):
                 data = str(v)
             elif type(v) == bool:
                 mate_format = "Bool"
-                data = str(v)
+                data = str.lower(str(v))
             elif v is None:
                 mate_format = "None"
                 data = None
@@ -262,15 +328,17 @@ def iterObj(obj, rows, path, longText, table = None ):
                 # 数据类型超出处理范围应当报错
                 pass
             # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
-            row = {"result": [this_path,  mate_format,  mate,  data]}
+            row = {"result": [this_path, mate_format, mate, data]}
             child_rows.append(row)
+        # path为空字符串，是第一次迭代的标志
         if path == "" and len(obj) == 0:
             mate = "emptyObj"
-            this_path = table + "." + mate
+            this_path =  "." + mate
             mate_format = "Object"
-            mate_order = -2
+            mate_order = -0
             data = 0
-            child_rows = {"add": [this_path,  mate_format,  mate,  data, mate_order]}
+            # 为了形式上的统一，将结果放在list中
+            child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
 
     elif type(obj) == list:
         for k, v in enumerate(obj):
@@ -307,23 +375,25 @@ def iterObj(obj, rows, path, longText, table = None ):
                 data = str(v)
             elif type(v) == bool:
                 mate_format = "Bool"
-                data = str(v)
+                data = str.lower(str(v))
             elif v is None:
                 mate_format = "None"
                 data = None
             else:
                 # 数据类型超出处理范围应当报错
                 pass
-            row = {"result": [this_path,  mate_format,  mate,  data]}
+            row = {"result": [this_path, mate_format, mate, data]}
             # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
             child_rows.append(row)
+        # path为空字符串，是第一次迭代的标志
         if path == "" and len(obj) == 0:
             mate = "emptyObj"
-            this_path = table + "." + mate
+            this_path = "." + mate
             mate_format = "Array"
-            mate_order = -2
+            mate_order = -0
             data = 0
-            child_rows = {"add": [this_path,  mate_format,  mate,  data, mate_order]}
+            # 为了形式上的统一，将结果放在list中
+            child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
     else:
         mate = "notObj"
         this_path = table + "." + mate
@@ -332,7 +402,7 @@ def iterObj(obj, rows, path, longText, table = None ):
         # 对象的附加信息是基于mate_order区别的，当mate_order的值为负，表示此信息非对象原生，而是附加信息
         # 不同负数值的具体含义，参见自定义的数据库说明文档，-2表示传进来的对象不是标准的对象格式(严格的说，不是
         # dict或者list),这里考虑最大的兼容性，采用附加信息的方式存储
-        mate_order = -2
+        mate_order = -0
         if type(obj) == str:
             mate_format = "String"
             # todo : 这里需要添加一个判定数据长度的函数，和一段长数据转储程序
@@ -352,15 +422,17 @@ def iterObj(obj, rows, path, longText, table = None ):
             data = str(obj)
         elif type(obj) == bool:
             mate_format = "Bool"
-            data = str(obj)
+            data = str.lower(str(obj))
         elif obj is None:
             mate_format = "None"
             data = None
         else:
             # 数据类型超出处理范围应当报错
             pass
-        child_rows = {"add": [this_path,  mate_format,  mate,  data, mate_order]}
+        # 为了形式上的统一，将结果放在list中
+        child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
     rows.append(child_rows)
+
 
 """
 # 首次在python中自编闭包形式的函数，虽然最后用不到了，留作纪念
@@ -379,6 +451,7 @@ def create_insert_string(tableName, primaryKey):
     return func(tableName, primaryKey)
 
 """
+
 
 class Field(object):
     def __init__(self, name, column_type, primary_key, default, auto_fill):
@@ -440,14 +513,15 @@ class ModelMetaclass(type):
     创建class时候，把这个作为参数传递进去
     就会用这里编写的方法对要创建的class进行指定的修改
     """
-    def __new__(cls ,name, bases, attrs):
-        #排除Model类本身
+
+    def __new__(cls, name, bases, attrs):
+        # 排除Model类本身
         if name == 'Model':
             return type.__new__(cls, name, bases, attrs)
-        #获取table名称：
+        # 获取table名称：
         tableName = attrs.get('__table__', None) or name
         logger.info('Found mode: %s (table: %s)' % (name, tableName))
-        #获取所有的Field和主键名称
+        # 获取所有的Field和主键名称
         mappings = dict()
         fields = []
         primaryKey = None
@@ -462,7 +536,7 @@ class ModelMetaclass(type):
                 """
                 mappings[k] = v
                 if v.primary_key:
-                    #找到主键：
+                    # 找到主键：
                     if primaryKey:
                         raise RuntimeError('Duplicated primary key for field: %s' % k)
                     primaryKey = k
@@ -473,30 +547,33 @@ class ModelMetaclass(type):
         for k in mappings.keys():
             attrs.pop(k)
         escaped_fields = list(map(lambda f: '`%s`' % f, fields))
-        attrs['__mappings__'] = mappings #保存属性和映射的关系
+        attrs['__mappings__'] = mappings  # 保存属性和映射的关系
         attrs['__escape_column__'] = set()
         attrs['__table__'] = tableName
         attrs['__exStorage__'] = "text_data_note"
-        attrs['__primary_key__'] = primaryKey #主键属性名
+        attrs['__primary_key__'] = primaryKey  # 主键属性名
         # 这里的fields采用list是因为后面sql语句中要与参数位置一一对应，需要有确定的顺序
-        attrs['__fields__'] = fields #除主键外的属性名
+        attrs['__fields__'] = fields  # 除主键外的属性名
         # 构造默认的SELECT, INSERT, UPDATE和DELETE语句:
         attrs['__select__'] = 'select `%s`, %s from `%s`' % (primaryKey, ','.join(escaped_fields), tableName)
-        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ','.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
-        attrs['__update__'] = 'update `%s` set %s where `%s` = ?' % (tableName, ','.join(map(lambda f: '`%s` = ?' % (mappings.get(f).name or f), fields)), primaryKey)
+        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (
+        tableName, ','.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
+        attrs['__update__'] = 'update `%s` set %s where `%s` = ?' % (
+        tableName, ','.join(map(lambda f: '`%s` = ?' % (mappings.get(f).name or f), fields)), primaryKey)
         attrs['__delete__'] = 'delete from %s where `%s` = ? ' % (tableName, primaryKey)
         return type.__new__(cls, name, bases, attrs)
-    
-class Model(dict,metaclass = ModelMetaclass):
+
+
+class Model(dict, metaclass=ModelMetaclass):
     def __init__(self, **kw):
         super(Model, self).__init__(**kw)
-        
-    def __getattr__(self,key):
+
+    def __getattr__(self, key):
         try:
             return self[key]
         except KeyError:
             raise AttributeError(r"'Model' has no attribute %s" % key)
-            
+
     def __setattr__(self, key, value):
         self[key] = value
 
@@ -505,6 +582,7 @@ class Model(dict,metaclass = ModelMetaclass):
     # （例如auto increment，timestamp）的表
     #  生成insert语句的支持
     """
+
     def create_insert_string(self, columns=[], escapes=[]):
         if not columns and not escapes:
             columns = copy.copy(self.__fields__)
@@ -512,8 +590,7 @@ class Model(dict,metaclass = ModelMetaclass):
             if self.__primary_key__ not in columns:
                 columns.append(self.__primary_key__)
         fields = list(map(lambda f: '`%s`' % f, filter(lambda x: x not in escapes, columns)))
-        sql = 'insert into `%s` (%s) values (%s)' % (
-                self.__table__, ','.join(fields), create_args_string(len(fields)))
+        sql = 'insert into `%s` (%s) values (%s)' % (self.__table__, ','.join(fields), create_args_string(len(fields)))
         return sql
 
     def getValue(self, key):
@@ -523,9 +600,9 @@ class Model(dict,metaclass = ModelMetaclass):
             这里，我想提示自己稍后详细研究下函数getattr，我就可以标记如下：
             #梗#稍后研究下面的 getattr
         """
-        return getattr(self,key,None)
-    
-    def getValueOrDefault(self,key):
+        return getattr(self, key, None)
+
+    def getValueOrDefault(self, key):
         auto_fill = False
         if key in self.__escape_column__:
             self.__escape_column__.discard(key)
@@ -544,10 +621,9 @@ class Model(dict,metaclass = ModelMetaclass):
                 logger.info('Using database auto fill value for %s: %s' % (key, str(value)))
         return [value, auto_fill]
 
-
     @classmethod
     @asyncio.coroutine
-    def get_object(cls, *,order=None,json_string=True,include_remark=True, **kw):
+    def get_object(cls, *, order=None, json_string=True, include_remark=True, **kw):
         database = "fortest"
         pool = get_pool(database)
         with (yield from pool) as conn:
@@ -578,7 +654,7 @@ class Model(dict,metaclass = ModelMetaclass):
                     add_pre_rows = yield from cur.fetchall()
                     add_data = {}
                     ex_storage = []
-                    object_add_data = {}
+                    iter_print = {}
                     """
                          # 附加信息如果有相同的mate_order,我们视为同一条附加信息，
                          # 同一条附加信息也应当由相同的mate
@@ -591,12 +667,14 @@ class Model(dict,metaclass = ModelMetaclass):
                             pre_row["mate_order"] = -1
                         pre_path = pre_row["path"]
                         pre_mate = pre_row["mate"]
+
                         # pre_path用来区分注释属于对象的哪一个mate，
                         # pre_mate用来区分同一个mate的不同条目的注释，
                         # order用来区分同一条注释的前后更新
                         def ex_hand(pre_row):
                             if pre_row["mate_format"] == "exStorage":
                                 ex_storage.append(pre_row["data"])
+
                         if pre_path not in add_data.keys():
                             add_data[pre_path] = {}
                             add_data[pre_path][pre_mate] = pre_row
@@ -635,12 +713,17 @@ class Model(dict,metaclass = ModelMetaclass):
                         ex_data = yield from cur.fetchall()
                         if ex_data:
                             ex_map[ex] = ex_data[0]["data"]
+
                     # 构成json字串
                     for k, v in add_data.items():
                         new_v = '"..remark":{'
                         for kk, vv in v.items():
                             new_v = new_v + '"' + kk + '"' + ':'
-                            pre_format = vv["mate_format"]
+                            mate_data = format_data(vv["mate_format"], vv["data"])
+                            new_v = new_v + mate_data + ","
+
+                            """
+                            # 这里的代码已经被函数format_data取代
                             if pre_format != "String":
                                 if pre_format == "Number" or pre_format == "Bool":
                                     new_v = new_v + vv["data"] + ","
@@ -651,16 +734,28 @@ class Model(dict,metaclass = ModelMetaclass):
                                     new_v = new_v + '"临时调试 -- > ' + vv["data"] + '"' + ","
                             else:
                                 new_v = new_v + '"' + vv["data"] + '"' + ","
+                            """
+
                         new_v = new_v[:-1] + "}"
                         add_data[k] = new_v
-
-
-
+                #获取迭代指纹
+                sql = "select mate_format, `data` from %s" % cls.__table__ + " where `mate_order` = -2 and `order` = %s "
+                yield from cur.execute(sql, (-order,))
+                iter_print = yield from cur.fetchone()
+                if iter_print["mate_format"] == "exStorage":
+                    sql = "select `data` from %s" % cls.__exStorage__ + " where `data_hash` = %s"
+                    yield from cur.execute(sql, (iter_print["data"],))
+                    iter_print["data"] = yield from cur.fetchone()
+                    iter_print["data"] = iter_print["data"]["data"]
 
                 # 获取对象原生信息
                 sql = "select * from %s " % cls.__table__ + "where `order` = %s order by `mate_order`"
                 yield from cur.execute(sql, order)
                 origin_pre_rows = yield from cur.fetchall()
+                # 构成json对象
+                count_row_num = [0, ]
+                object_json = create_json(origin_pre_rows, count_row_num, [iter_print["data"]])
+
             except BaseException as e:
                 logger.warn(e)
                 pass
@@ -668,11 +763,11 @@ class Model(dict,metaclass = ModelMetaclass):
             tips_SF:这里返回json字串中，每一个键和非Object非Array的值，必须用双引号，整个字符串用单引号包裹，
             下面的样子会导致解析错误
             return "{'..remark': {'algorithm': 'algorithm', 'ele': 'lll', 'theta': 'theta'},'colon equals': {'..remark': 'to denote setting a variable on the left hand side','style': ':='}, 'gradient': 'gradient descent', 'notation': {'colon': ':'}}"
-        """
-        return '{' + add_data[-1] + '}'
+        # return '{' + add_data[-1] + '}'
         # return '{"..remark": {"algorithm": "algorithm", "ele": "lll", "theta": "theta"},"colon equals": {"..remark": "to denote setting a variable on the left hand side","style": ":="}, "gradient": "gradient descent", "notation": {"colon": ":"}}'
         # return   '{"gradient": "gradient descent", "..remark": {"algorithm": "algorithm", "ele": "lll", "theta": "theta"}, "not ation": {"colon": ":"}, "colon equals": {"style": ":=", "..remark": "to denote setting a variable on the left hand side "}}'
-
+        """
+        return object_json
 
     """
     # saveObj函数接收一个由json转化来的对象，相应代码如下：
@@ -687,6 +782,7 @@ class Model(dict,metaclass = ModelMetaclass):
             这些表格的列必须包含如下固定格式
                 path, mate, mate_hash, mate_order, order, mate_format, data
     """
+
     @classmethod
     @asyncio.coroutine
     def saveObj(cls, obj, **kw):
@@ -706,20 +802,23 @@ class Model(dict,metaclass = ModelMetaclass):
                     rows_pre = []
                     long_text = {}
                     iterObj(obj, rows_pre, "", long_text, cls.__table__)
-                    # long_text_len = len(long_text)
-                    # logger.warn("++++++++++++++||length of longText: %d+++++++++++++++++++++++++++++++++++++++++++++++++++" % long_text_len)
-                    # todo: 新值插入，旧值增加引用计数测试成功，只有抛出错误需要修正
-                    for k, v in long_text.items():
-                        yield from cur.execute("""select  `data`,`data_hash`,`quote` FROM text_data_note where `data_hash` = %s""",k)
+
+                    def insert_ex_table(data_hash, data):
+                        logger.info("--------------||This is insert_ex_table||-------------------------")
+                        # todo: 新值插入，旧值增加引用计数测试成功，只有抛出错误需要修正
+                        yield from cur.execute(
+                            """SELECT  `data`,`data_hash`,`quote` FROM text_data_note WHERE `data_hash` = %s""", data_hash)
                         query_rows = yield from cur.fetchall()
                         if not query_rows:
-                            yield from cur.execute("""INSERT INTO text_data_note( `data`,`data_hash`,`quote` ) VALUES( %s,%s,%s)""",
-                                        (v, k, 1))
+                            yield from cur.execute(
+                                """INSERT INTO text_data_note( `data`,`data_hash`,`quote` ) VALUES( %s,%s,%s)""",
+                                (data, data_hash, 1))
                         else:
-                            if query_rows[0]["data"] == v:
+                            if query_rows[0]["data"] == data:
                                 new_quote = query_rows[0]["quote"] + 1
-                                yield from cur.execute("""UPDATE text_data_note SET `quote` = %s WHERE `data_hash` = %s """,
-                                                       (new_quote, query_rows[0]["data_hash"]))
+                                yield from cur.execute(
+                                    """UPDATE text_data_note SET `quote` = %s WHERE `data_hash` = %s """,
+                                    (new_quote, query_rows[0]["data_hash"]))
                             else:
                                 # SF:最好编写一个正规的错误类型
                                 raise RuntimeError("""-------------||                ||-----------------
@@ -727,8 +826,34 @@ class Model(dict,metaclass = ModelMetaclass):
                                 -------------||                 ||-----------------
                                 -------------||%s||-----------------
                                 -------------||%s||-----------------
-                                -------------||%s||-----------------""" % (v, query_rows[0]["data"], k))
+                                -------------||%s||-----------------""" % (data, query_rows[0]["data"], data_hash))
 
+                    # long_text_len = len(long_text)
+                    # logger.warn("++++++++++++++||length of longText: %d+++++++++++++++++++++++++++++++++++++++++++++++++++" % long_text_len)
+                    for data_hash, data in long_text.items():
+                        # logger.info("--------------||This is insert_ex_table||-------------------------")
+                        # todo: 新值插入，旧值增加引用计数测试成功，只有抛出错误需要修正
+                        yield from cur.execute(
+                            """SELECT  `data`,`data_hash`,`quote` FROM text_data_note WHERE `data_hash` = %s""", data_hash)
+                        query_rows = yield from cur.fetchall()
+                        if not query_rows:
+                            yield from cur.execute(
+                                """INSERT INTO text_data_note( `data`,`data_hash`,`quote` ) VALUES( %s,%s,%s)""",
+                                (data, data_hash, 1))
+                        else:
+                            if query_rows[0]["data"] == data:
+                                new_quote = query_rows[0]["quote"] + 1
+                                yield from cur.execute(
+                                    """UPDATE text_data_note SET `quote` = %s WHERE `data_hash` = %s """,
+                                    (new_quote, query_rows[0]["data_hash"]))
+                            else:
+                                # SF:最好编写一个正规的错误类型
+                                raise RuntimeError("""-------------||                ||-----------------
+                                -------------|| 发现Hash碰撞！！||-----------------
+                                -------------||                 ||-----------------
+                                -------------||%s||-----------------
+                                -------------||%s||-----------------
+                                -------------||%s||-----------------""" % (data, query_rows[0]["data"], data_hash))
                     # todo: 这里有一个BUG
                     """
                         这里写的代码是异步代码，也就是对并发支持度高，对于读取来说
@@ -738,19 +863,54 @@ class Model(dict,metaclass = ModelMetaclass):
                         这显然是个错误。
                             看来写入，能不能并发，该不该并发，都要好好研究考虑
                     """
-                    yield from cur.execute("""SELECT auto_increment FROM information_schema.tables where table_schema=%s and table_name=%s""",(database,cls.__table__))
+                    yield from cur.execute(
+                        """SELECT auto_increment FROM information_schema.tables WHERE table_schema=%s AND table_name=%s""",
+                        (database, cls.__table__))
                     order = yield from cur.fetchall()
                     order = order[0]["auto_increment"]
                     # order = yield from select_autoincrement(cls.__table__, database="fortest")
                     rows_in = []
-                    create_rows(rows_pre, [0, ], order, rows_in)
+                    iter_print_row = []
+                    iter_print = create_rows(rows_pre[0], [0, ], order, rows_in, "{")
+                    iter_print_data = iter_print
+                    iter_print_format = "String"
+                    if len(iter_print) > 120:
+                        iter_print_data= ex_store(iter_print, long_text)
+                        # logger.info("--------------||This is insert_ex_table||-------------------------")
+                        # todo: 新值插入，旧值增加引用计数测试成功，只有抛出错误需要修正
+                        yield from cur.execute(
+                            """SELECT  `data`,`data_hash`,`quote` FROM text_data_note WHERE `data_hash` = %s""", iter_print_data)
+                        query_rows = yield from cur.fetchall()
+                        if not query_rows:
+                            yield from cur.execute(
+                                """INSERT INTO text_data_note( `data`,`data_hash`,`quote` ) VALUES( %s,%s,%s)""",
+                                (iter_print, iter_print_data, 1))
+                        else:
+                            if query_rows[0]["data"] == iter_print:
+                                new_quote = query_rows[0]["quote"] + 1
+                                yield from cur.execute(
+                                    """UPDATE text_data_note SET `quote` = %s WHERE `data_hash` = %s """,
+                                    (new_quote, query_rows[0]["data_hash"]))
+                            else:
+                                # SF:最好编写一个正规的错误类型
+                                raise RuntimeError("""-------------||                ||-----------------
+                                -------------|| 发现Hash碰撞！！||-----------------
+                                -------------||                 ||-----------------
+                                -------------||%s||-----------------
+                                -------------||%s||-----------------
+                                -------------||%s||-----------------""" % (iter_print, query_rows[0]["data"], iter_print_data))
+                        iter_print_format = "exStorage"
+                    iter_print_row = [".iterPrint", iter_print_format, "iterPrint", iter_print_data, hashlib.sha1(".iterPrint".encode("utf-8")).digest(), -2, -order]
+                    rows_in.append(iter_print_row)
                     # print_rows(rows_in, recur=False)
                     fields = list(map(lambda f: '`%s`' % f, OBJTABLE))
-                    sql = 'insert into `%s` (%s) values (%s)' % ( cls.__table__, ','.join(fields), create_args_string(len(OBJTABLE)))
+                    sql = 'insert into `%s` (%s) values (%s)' % (
+                    cls.__table__, ','.join(fields), create_args_string(len(OBJTABLE)))
                     # rs = yield from execute_many(sql, rows_in, database="fortest")
                     yield from cur.executemany(sql.replace('?', '%s'), rows_in)
                     rs = cur.rowcount
-                    rs = "-----|| This is %s.saveObj||---(Insert %s rows...)--------------------------" % (cls.__table__, rs)
+                    rs = "-----|| This is %s.saveObj||---(Insert %s rows...)--------------------------" % (
+                    cls.__table__, rs)
                     logger.info(rs)
                     # return rows_in
                     yield from conn.commit()
@@ -760,13 +920,9 @@ class Model(dict,metaclass = ModelMetaclass):
                 yield from conn.rollback()
                 raise
 
-
-
-
-
     @classmethod
     @asyncio.coroutine
-    def findAll(cls, where = None, args = None, **kw):
+    def findAll(cls, where=None, args=None, **kw):
         'find objects by where clause.'
         sql = [cls.__select__]
         if where:
@@ -774,11 +930,11 @@ class Model(dict,metaclass = ModelMetaclass):
             sql.append(where)
         if args is None:
             args = []
-        orderBy = kw.get('orderBy',None)
+        orderBy = kw.get('orderBy', None)
         if orderBy:
             sql.append('order by')
             sql.append(orderBy)
-        limit = kw.get('limit',None)
+        limit = kw.get('limit', None)
         if limit is not None:
             sql.append('limit')
             if isinstance(limit, int):
@@ -790,15 +946,15 @@ class Model(dict,metaclass = ModelMetaclass):
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
         rs = yield from select(' '.join(sql), args)
-        #梗#弄清cls(**r)是什么用法
+        # 梗#弄清cls(**r)是什么用法
         return [cls(**r) for r in rs]
 
     @classmethod
     @asyncio.coroutine
-    def findNumber(cls, selectField, where = None, args = None):
+    def findNumber(cls, selectField, where=None, args=None):
         'find number by selected and where'
-        #梗#`%s`是什么用法
-        #这的_num是sql语句中的"别名"，查询某一列，然后给这一列起了个别名_num_，查询结果的列名直接就是这个别名了
+        # 梗#`%s`是什么用法
+        # 这的_num是sql语句中的"别名"，查询某一列，然后给这一列起了个别名_num_，查询结果的列名直接就是这个别名了
         sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
         if where:
             sql.append('where')
@@ -807,19 +963,19 @@ class Model(dict,metaclass = ModelMetaclass):
         if len(rs) == 0:
             return None
         return rs[0]['_num_']
-    
+
     @classmethod
     @asyncio.coroutine
     def find(cls, pk):
-        #find object by primary key.
+        # find object by primary key.
         rs = yield from select('%s where `%s` = ?' % (cls.__select__, cls.__primary_key__), [pk], 1)
         if len(rs) == 0:
             return None
         return cls(**rs[0])
-    
+
     @asyncio.coroutine
     def save(self):
-        pre_args = list(map(self.getValueOrDefault,self.__fields__))
+        pre_args = list(map(self.getValueOrDefault, self.__fields__))
         pre_args.append(self.getValueOrDefault(self.__primary_key__))
         args = []
         # 这pre_args的返回值是list，第一个元素是相应列的value值，第二个元素如果是
@@ -835,12 +991,12 @@ class Model(dict,metaclass = ModelMetaclass):
         # rows = yield from execute(self.__insert__(self.__fields__, self.__escape_column__), args)
         if rows != 1:
             logger.warn('Failed to insert record: affected rows: %s' % rows)
-    
+
     @asyncio.coroutine
     def update(self):
-        args = list(map(self.getValueOrDefault,self.__fields__))
+        args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
-        rows = yield from execute(self.__update__,args)
+        rows = yield from execute(self.__update__, args)
         if rows != 1:
             logger.warn('Failed to update by primary key: affected rows: %s' % rows)
 
@@ -851,24 +1007,25 @@ class Model(dict,metaclass = ModelMetaclass):
         if rows != 1:
             logger.warn('Failed to remove by primary_key: affected rows: %s' % rows)
 
-    
-    
-#self#此处用作测试用
+
+# self#此处用作测试用
 class User(Model):
     # 定义类的属性到列的映射
     __table__ = 'users'
-    id = IntegerField('id',True)
+    id = IntegerField('id', True)
     name = StringField('username')
     email = StringField('email')
     password = StringField('password')
-    #这里我定义了一个测试函数，发现在modelMateclass，参数attrs果然出现了这个函数的代号
+
+    # 这里我定义了一个测试函数，发现在modelMateclass，参数attrs果然出现了这个函数的代号
     def test():
         pass
 
+
 if __name__ == '__main__':
-    ut = User(id = 1235, name = 'Richael', email = 'mytest@orm.org', password = 'passmy')
+    ut = User(id=1235, name='Richael', email='mytest@orm.org', password='passmy')
     test = 'mytest';
-    
+
 
 
 # User类现在就可以通过类方法实现主键查找：

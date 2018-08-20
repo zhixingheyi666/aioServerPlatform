@@ -86,17 +86,17 @@
     这是个虚拟属性，用于从数据库逆向还原Object时的标志，在还原过程的某个步骤，
     会将整个Object的注释等附加属性的mate_order标记为-1，然后组合成"..remark"
     属性，成为Object的第一层属性的兄弟属性。
-    0.mate:***              path:***                    mate_order:-2
+    0.mate:iterPrint              path:.iterPrint                   mate_order:-2
     这是个有序迭代属性，由于还未考虑周全，所以用***表示，我设想对于
     同一个对象，应该进行有序迭代，这个属性就存储有序迭代的相关信息，
     比如迭代顺序。我想利用已知的迭代顺序，方便的逆向从存储中把对象恢复出来。
     当然，也许不需要有序迭代，就能比较方便的恢复。
-    1.mate:row_id           path:users_note.row_id      mate_order: -100
+    1.mate:row_id           path:.row_id      mate_order: -100
     某次存储时，所有原生信息的行id，我们可以同时按照迭代顺序来记录，这样这个值兼具有
     迭代顺序的功能。由于这些行数基本接近，可以采用记录一个基准数值，然后后面用正负
     于基准值的数字串来表示的办法。
-    2.mate:remark           path: users_note.remark     mate_order: -200 ... -299
-    3.mate:notObj           path:users_note.notObj      mate_order: 0
+    2.mate:remark           path:.remark     mate_order: -200 ... -299
+    3.mate:notObj           path:.notObj      mate_order: 0
       如果传进来的是不是对象(准确的说，不是dict或者list)，就生成这个附加信息，并存储
       传进来的值。
     4.为了与对象的原生信息区分，规定所有附加信息的order取正值的相反数，也就是所本来如果
