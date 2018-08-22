@@ -3,6 +3,7 @@
 __author__ = 'Master Wang'
 
 import asyncio, aiomysql, pdb
+import json
 
 from mylog import logger
 import copy, hashlib
@@ -114,10 +115,9 @@ def get_pool(database="excodout"):
     return __poollist[database]
 
 
-def format_data(mate_format, data):
+def format_data(mate_format, data, ex_map):
     if mate_format != "String":
         if mate_format == "Number":
-            # new_v = new_v + vv["data"] + ","
             result = data
         elif mate_format == "Bool":
             # 下面两句是兼容旧的格式，新格式要求bool值需存储小写字符串以符合json的标准
@@ -127,11 +127,18 @@ def format_data(mate_format, data):
                 data = "false"
             result = data
         elif mate_format == "exStorage":
-            # new_v = new_v + '"' + ex_map[vv["data"]] + '"' + ","
-            # new_v = new_v + '"exStorage调试 -- > ' + vv["data"] + '"' + ","
-            result = '"exStorage调试 -- > ' + data + '"'
+            try:
+                result = json.dumps(ex_map[data])
+            except BaseException as e:
+                logger.warn(e)
+                result = '"exStorage调试 -- > ' + data + '"'
+            # result = '"' + ex_map[data] + '"'
         elif mate_format == "None":
             result = "null"
+        elif mate_format == "Array":
+            result = "[]"
+        elif mate_format == "Object":
+            result = "{}"
         else:
             try:
                 data = str(data)
@@ -145,7 +152,7 @@ def format_data(mate_format, data):
     return result
 
 
-def create_json(rows, step, left_print):
+def create_json(rows, step, left_print, ex_map, is_array=False):
     json_result = ""
     skip = False
     while(len(left_print[0]) > 0):
@@ -153,10 +160,32 @@ def create_json(rows, step, left_print):
         for i in iter_print:
             left_print[0] = left_print[0][1:]
             if i == "{":
-                sub_json_value = create_json(rows, step, left_print)
+                #判断即将迭代的对象的是否是Array
+                sub_is_array = False
+                if len(left_print[0]) >0:
+                    temp_step = step[0]
+                    temp_array = 1
+                    for li in left_print[0]:
+                        if li == "}":
+                            temp_array -= 1
+                            if temp_array == 0:
+                                if temp_step < len(rows):
+                                    if rows[temp_step]["mate_format"] == "Array":
+                                        sub_is_array = True
+                                break
+                        elif li == "{":
+                            temp_array += 1
+                        else:
+                            temp_step += 1
+                # 递归迭代大括号里面子对象
+                sub_json_value = create_json(rows, step, left_print, ex_map, sub_is_array)
                 if step[0] < len(rows):
-                    json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
-                    json_result += i
+                    if is_array is not True:
+                        json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
+                    if sub_is_array is not True:
+                        json_result += i
+                    else:
+                        json_result += "["
                     json_result += sub_json_value + ','
                     skip = True
                     break
@@ -166,12 +195,16 @@ def create_json(rows, step, left_print):
                     return json_result
             elif i == ".":
                 if not skip:
-                    json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
-                    json_result += format_data(rows[step[0]]["mate_format"], rows[step[0]]["data"]) + ','
+                    if is_array is not True:
+                        json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
+                    json_result += format_data(rows[step[0]]["mate_format"], rows[step[0]]["data"], ex_map) + ','
                 skip = False
                 step[0] += 1
             elif i == "}":
-                json_result = json_result[:-1] + i
+                if is_array is not True:
+                    json_result = json_result[:-1] + i
+                else:
+                    json_result = json_result[:-1] + "]"
                 return json_result
             else:
                 logger.warn("---------------||orm.py Func create_json: unexcept character \"%s\"in iterPrint" % i)
@@ -706,20 +739,20 @@ class Model(dict, metaclass=ModelMetaclass):
                         if mate_order:
                             mate_order_map[mate_order[0]["mate_order"]] = p
                     # 提取exStorage存储的数据
-                    ex_map = {}
+                    ex_map_remark = {}
                     for ex in ex_storage:
                         sql = "select `data` from %s" % cls.__exStorage__ + " where `data_hash` = %s"
                         yield from cur.execute(sql, (ex))
                         ex_data = yield from cur.fetchall()
                         if ex_data:
-                            ex_map[ex] = ex_data[0]["data"]
+                            ex_map_remark[ex] = ex_data[0]["data"]
 
                     # 构成json字串
                     for k, v in add_data.items():
                         new_v = '"..remark":{'
                         for kk, vv in v.items():
                             new_v = new_v + '"' + kk + '"' + ':'
-                            mate_data = format_data(vv["mate_format"], vv["data"])
+                            mate_data = format_data(vv["mate_format"], vv["data"], ex_map_remark)
                             new_v = new_v + mate_data + ","
 
                             """
@@ -747,6 +780,19 @@ class Model(dict, metaclass=ModelMetaclass):
                     yield from cur.execute(sql, (iter_print["data"],))
                     iter_print["data"] = yield from cur.fetchone()
                     iter_print["data"] = iter_print["data"]["data"]
+                # 获取存储在外部的数据(exStorage)
+                sql = "select `data` from %s " % cls.__table__ + "where `order` = %s and `mate_format` = 'exStorage'"
+                yield from cur.execute(sql, order)
+                origin_ex_storages= yield from cur.fetchall()
+                # 提取exStorage存储的数据
+                ex_map = {}
+                for ex in origin_ex_storages:
+                    sql = "select `data` from %s" % cls.__exStorage__ + " where `data_hash` = %s"
+                    yield from cur.execute(sql, (ex["data"]))
+                    ex_data = yield from cur.fetchall()
+                    if ex_data:
+                        ex_map[ex["data"]] = ex_data[0]["data"]
+
 
                 # 获取对象原生信息
                 sql = "select * from %s " % cls.__table__ + "where `order` = %s order by `mate_order`"
@@ -754,7 +800,11 @@ class Model(dict, metaclass=ModelMetaclass):
                 origin_pre_rows = yield from cur.fetchall()
                 # 构成json对象
                 count_row_num = [0, ]
-                object_json = create_json(origin_pre_rows, count_row_num, [iter_print["data"]])
+                if len(origin_pre_rows) is 1:
+                    if origin_pre_rows[0]["mate_order"] is 0:
+                        object_json = format_data(origin_pre_rows[0]["mate_format"], origin_pre_rows[0]["data"], ex_map)
+                else:
+                    object_json = create_json(origin_pre_rows, count_row_num, [iter_print["data"]], ex_map)
 
             except BaseException as e:
                 logger.warn(e)

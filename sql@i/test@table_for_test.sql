@@ -1,5 +1,6 @@
 use fortest;
 
+select * from table_for_test where `mate_format` ="exStorage" and `order` >0;
 
 select `mate_order`,`data` from table_for_test where `mate_order` = -2 and `order` = -1374;
 -- -----------------------------------------------
@@ -22,6 +23,7 @@ insert into table_for_test(path,mate,mate_hash,mate_order,`order`,mate_format,`d
 update table_for_test set path="table_for_test.subscriptionInfo.serviceLevelsEligibleForPurchase" where `order`="-100";
 
 select * from table_for_test order by `id` desc;
+select * from table_for_test where `order`=1499 order by mate_order;
 select * from table_for_test where `order`=1374 order by mate_order;
 select max(`order`) from table_for_test;
 select distinct `order` from table_for_test order by `order` desc;

@@ -1,5 +1,5 @@
 
-
+select * from users_note where `mate_format` ="exStorage" and `order` >0;
 
 SELECT max(`order`) FROM users_note;
 select * from users_note order by id desc;
