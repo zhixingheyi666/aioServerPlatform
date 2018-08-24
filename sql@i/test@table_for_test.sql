@@ -1,8 +1,13 @@
 use fortest;
-
+select mate_hash from table_for_test where mate_order= 104 and `order` = 1897 into @gethash ;
+insert into table_for_test(path,mate,mate_hash,mate_order,`order`,mate_format,`data`)
+	values(".subscriptionInfo.currentSku","TestBoolRemark@ix", @gethash,
+    -10003,-100,"Bool","False");
+-- ----------------------------------------------------------------------------
 select * from table_for_test where `mate_format` ="exStorage" and `order` >0;
-
+select * from table_for_test where `mate_order` =0;
 select `mate_order`,`data` from table_for_test where `mate_order` = -2 and `order` = -1374;
+select * from table_for_test order by `id` desc;
 -- -----------------------------------------------
 select `mate_order` from table_for_test where `order` = 260 and `path` = ".subscriptionInfo.serviceLevelsEligibleForPurchase";
 

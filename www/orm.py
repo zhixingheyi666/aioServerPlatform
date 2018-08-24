@@ -152,7 +152,7 @@ def format_data(mate_format, data, ex_map):
     return result
 
 
-def create_json(rows, step, left_print, ex_map, is_array=False):
+def create_json(rows, step, left_print, ex_map, is_array=False, add_data={}, mate_order_map={}):
     json_result = ""
     skip = False
     while(len(left_print[0]) > 0):
@@ -172,15 +172,26 @@ def create_json(rows, step, left_print, ex_map, is_array=False):
                                 if temp_step < len(rows):
                                     if rows[temp_step]["mate_format"] == "Array":
                                         sub_is_array = True
+                                elif temp_step == len(rows):
+                                    sub_is_array = is_array
                                 break
                         elif li == "{":
                             temp_array += 1
                         else:
                             temp_step += 1
                 # 递归迭代大括号里面子对象
-                sub_json_value = create_json(rows, step, left_print, ex_map, sub_is_array)
+                sub_json_value = create_json(rows, step, left_print, ex_map, sub_is_array, add_data, mate_order_map)
                 if step[0] < len(rows):
                     if is_array is not True:
+                        try:
+                            # 这里rows的排序是从0开始的，所以其索引号比mate_order少 1，
+                            # 但是mate_order_map是按照mate_order组成的键值对，所以引用的时候要加上1
+                            # 例如rows108行对应的mate_order是109，所以对mate_order_map应取108+1的路径
+                            remark = '\"' + rows[step[0]]["mate"] + '.' + add_data[mate_order_map[step[0]+1]][1:] + ','
+                        except Exception:
+                            # logger.warn(e)
+                            remark = ""
+                        json_result += remark
                         json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
                     if sub_is_array is not True:
                         json_result += i
@@ -190,12 +201,29 @@ def create_json(rows, step, left_print, ex_map, is_array=False):
                     skip = True
                     break
                 else:
-                    json_result += i
-                    json_result += sub_json_value
+                    if is_array is False:
+                        json_result += i
+                        # 如果有对象注释，并且生成了注释，那就将注释添加上
+                        if -1 in add_data.keys():
+                            json_result += add_data[-1] + ","
+                        json_result += sub_json_value
+                    else:
+                        json_result += "["
+                        if -1 in add_data.keys():
+                            json_result += "{" + add_data[-1] + "}" + ","
+                        json_result += sub_json_value[:-1] + "]"
                     return json_result
             elif i == ".":
                 if not skip:
                     if is_array is not True:
+                        try:
+                            # 这里rows的排序是从0开始的，所以其索引号比mate_order少 1，
+                            # 但是mate_order_map是按照mate_order组成的键值对，所以引用的时候要加上1
+                            # 例如rows108行对应的mate_order是109，所以对mate_order_map应取108+1的路径
+                            remark = '\"' + rows[step[0]]["mate"] + '.' + add_data[mate_order_map[step[0]+1]][1:] + ','
+                        except Exception:
+                            remark = ""
+                        json_result += remark
                         json_result += '\"' + rows[step[0]]["mate"] + '\"' + ':'
                     json_result += format_data(rows[step[0]]["mate_format"], rows[step[0]]["data"], ex_map) + ','
                 skip = False
@@ -299,6 +327,9 @@ def create_rows(rows, num, order, result, iter_print):
 
 
 def iterObj(obj, rows, path, longText, table=None):
+    # 如果最开始的Object是个Array，为了避免还原时出错，需要判定并返回一开始的Object类型,
+    # 用变量obj_format标记吧
+    obj_format = "object"
     child_rows = []
     if type(obj) == dict:
         for k, v in obj.items():
@@ -364,15 +395,15 @@ def iterObj(obj, rows, path, longText, table=None):
             row = {"result": [this_path, mate_format, mate, data]}
             child_rows.append(row)
         # path为空字符串，是第一次迭代的标志
-        if path == "" and len(obj) == 0:
-            mate = "emptyObj"
-            this_path =  "." + mate
-            mate_format = "Object"
-            mate_order = -0
-            data = 0
-            # 为了形式上的统一，将结果放在list中
-            child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
-
+        if path == "":
+            if len(obj) == 0:
+                mate = "emptyObj"
+                this_path = "." + mate
+                mate_format = "Object"
+                mate_order = -0
+                data = 0
+                # 为了形式上的统一，将结果放在list中
+                child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
     elif type(obj) == list:
         for k, v in enumerate(obj):
             mate = str(k)
@@ -419,14 +450,17 @@ def iterObj(obj, rows, path, longText, table=None):
             # row = {"path": this_path, "mate_format": mate_format, "mate": mate, "data": data}
             child_rows.append(row)
         # path为空字符串，是第一次迭代的标志
-        if path == "" and len(obj) == 0:
-            mate = "emptyObj"
-            this_path = "." + mate
-            mate_format = "Array"
-            mate_order = -0
-            data = 0
-            # 为了形式上的统一，将结果放在list中
-            child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
+        if path == "":
+            if len(obj) == 0:
+                mate = "emptyObj"
+                this_path = "." + mate
+                mate_format = "Array"
+                mate_order = -0
+                data = 0
+                # 为了形式上的统一，将结果放在list中
+                child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
+            else:
+                obj_format = "Array"
     else:
         mate = "notObj"
         this_path = table + "." + mate
@@ -465,6 +499,7 @@ def iterObj(obj, rows, path, longText, table=None):
         # 为了形式上的统一，将结果放在list中
         child_rows = [{"add": [this_path, mate_format, mate, data, mate_order]}]
     rows.append(child_rows)
+    return obj_format
 
 
 """
@@ -681,11 +716,12 @@ class Model(dict, metaclass=ModelMetaclass):
                 4.返回结果
                 """
                 # 根据需要，获取对象附加信息
+                add_data = {}
+                mate_order_map = {}
                 if include_remark:
                     sql = "select * from %s " % cls.__table__ + "where `mate_order` < 0 order by `mate_order`"
                     yield from cur.execute(sql)
                     add_pre_rows = yield from cur.fetchall()
-                    add_data = {}
                     ex_storage = []
                     iter_print = {}
                     """
@@ -731,7 +767,6 @@ class Model(dict, metaclass=ModelMetaclass):
                         """
 
                     # 获取path对应的mate_order编号
-                    mate_order_map = {}
                     sql = "select `mate_order` from %s" % cls.__table__ + " where `order` = %s and `path` = %s"
                     for p in add_data.keys():
                         yield from cur.execute(sql, (order, p))
@@ -754,23 +789,19 @@ class Model(dict, metaclass=ModelMetaclass):
                             new_v = new_v + '"' + kk + '"' + ':'
                             mate_data = format_data(vv["mate_format"], vv["data"], ex_map_remark)
                             new_v = new_v + mate_data + ","
-
-                            """
-                            # 这里的代码已经被函数format_data取代
-                            if pre_format != "String":
-                                if pre_format == "Number" or pre_format == "Bool":
-                                    new_v = new_v + vv["data"] + ","
-                                elif pre_format == "exStorage":
-                                    # new_v = new_v + '"' + ex_map[vv["data"]] + '"' + ","
-                                    new_v = new_v + '"exStorage调试 -- > ' + vv["data"] + '"' + ","
-                                else:
-                                    new_v = new_v + '"临时调试 -- > ' + vv["data"] + '"' + ","
-                            else:
-                                new_v = new_v + '"' + vv["data"] + '"' + ","
-                            """
-
                         new_v = new_v[:-1] + "}"
                         add_data[k] = new_v
+
+                # 获取原生对象是否是非空Array
+                is_array = False
+                sql = "select mate_format, `data` from %s" % cls.__table__ + " where `mate` = 'arrayObject' and `order`= %s "
+                yield from cur.execute(sql, (-order))
+                # is_array = yield from cur.fetchone()
+                is_array = yield from cur.fetchall()
+                if len(is_array) == 1:
+                    is_array = True
+                else:
+                    is_array = False
                 #获取迭代指纹
                 sql = "select mate_format, `data` from %s" % cls.__table__ + " where `mate_order` = -2 and `order` = %s "
                 yield from cur.execute(sql, (-order,))
@@ -803,8 +834,19 @@ class Model(dict, metaclass=ModelMetaclass):
                 if len(origin_pre_rows) is 1:
                     if origin_pre_rows[0]["mate_order"] is 0:
                         object_json = format_data(origin_pre_rows[0]["mate_format"], origin_pre_rows[0]["data"], ex_map)
+                        if -1 in add_data.keys():
+                            if object_json == "{}":
+                                object_json = "{" + add_data[-1] + "}"
+                            elif object_json == "[]":
+                                # 本来Array的注释只能添加在Array的外头，但是Array外面没有其他了，
+                                # 所以考虑最外层如果时个Array，整个对象的注释应该怎样添加呢？
+                                # 规定采用如下格式吧
+                                object_json = '{"..Object":' + object_json + "," + add_data[-1] + "}"
+                                pass
+                            else:
+                                object_json = '{"..Object":' + object_json + "," + add_data[-1] + "}"
                 else:
-                    object_json = create_json(origin_pre_rows, count_row_num, [iter_print["data"]], ex_map)
+                    object_json = create_json(origin_pre_rows, count_row_num, [iter_print["data"]], ex_map, is_array, add_data, mate_order_map)
 
             except BaseException as e:
                 logger.warn(e)
@@ -851,7 +893,7 @@ class Model(dict, metaclass=ModelMetaclass):
                 else:
                     rows_pre = []
                     long_text = {}
-                    iterObj(obj, rows_pre, "", long_text, cls.__table__)
+                    obj_format = iterObj(obj, rows_pre, "", long_text, cls.__table__)
 
                     def insert_ex_table(data_hash, data):
                         logger.info("--------------||This is insert_ex_table||-------------------------")
@@ -950,7 +992,11 @@ class Model(dict, metaclass=ModelMetaclass):
                                 -------------||%s||-----------------
                                 -------------||%s||-----------------""" % (iter_print, query_rows[0]["data"], iter_print_data))
                         iter_print_format = "exStorage"
-                    iter_print_row = [".iterPrint", iter_print_format, "iterPrint", iter_print_data, hashlib.sha1(".iterPrint".encode("utf-8")).digest(), -2, -order]
+                    iter_print_row = [".iterPrint", iter_print_format, "iterPrint", iter_print_data,
+                                      hashlib.sha1(".iterPrint".encode("utf-8")).digest(), -2, -order]
+                    if obj_format == "Array":
+                        rows_in.append([".arrayObject", "Array", "arrayObject", str(len(obj)),
+                                        hashlib.sha1(".arrayObject".encode("utf-8")).digest(), 0, -order])
                     rows_in.append(iter_print_row)
                     # print_rows(rows_in, recur=False)
                     fields = list(map(lambda f: '`%s`' % f, OBJTABLE))
