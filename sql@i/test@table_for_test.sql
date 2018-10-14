@@ -1,4 +1,9 @@
 use fortest;
+select * from table_for_test where `order` >2021;
+select * from table_for_test where `order` >2021 and `mate`="author";
+select count(*) from table_for_test where `order` >2021 and `mate`="title";
+select * from table_for_test where `order` >2021 and `mate`="title";
+-- ------------------------------------------------------------------------------------------
 select mate_hash from table_for_test where mate_order= 104 and `order` = 1897 into @gethash ;
 insert into table_for_test(path,mate,mate_hash,mate_order,`order`,mate_format,`data`)
 	values(".subscriptionInfo.currentSku","TestBoolRemark@ix", @gethash,

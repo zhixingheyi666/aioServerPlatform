@@ -658,6 +658,7 @@ class Model(dict, metaclass=ModelMetaclass):
             if self.__primary_key__ not in columns:
                 columns.append(self.__primary_key__)
         fields = list(map(lambda f: '`%s`' % f, filter(lambda x: x not in escapes, columns)))
+        fields.sort()
         sql = 'insert into `%s` (%s) values (%s)' % (self.__table__, ','.join(fields), create_args_string(len(fields)))
         return sql
 
@@ -1068,6 +1069,34 @@ class Model(dict, metaclass=ModelMetaclass):
         if len(rs) == 0:
             return None
         return cls(**rs[0])
+
+    @asyncio.coroutine
+    def save_many(self, argsArray):
+        # 这里有个问题，就是传进来的argsArray中包含需要插入的每一行的每列的数据，
+        # 都应当和sql语句中每一列的参数的顺序相对应
+        # 这里的程序能自处理autofill列，但是没有设计默认值情况的处理，
+        # 所以除了autofill列，其余列必须给定参数值，即使是null列。
+        # 以后完善，可以考虑如何处理某些列的值为null的情况
+
+        # 下面语句是为了兼容处理autofill的列，因为getValueOrDefault函数
+        # 在执行过程中，会记录autofill的列，并写入self.__escape_column__
+        pre_args = list(map(self.getValueOrDefault, self.__fields__))
+        pre_args.append(self.getValueOrDefault(self.__primary_key__))
+
+        # 这里需要处理好传进来的参数和列的对应关系
+        #
+        sql = self.create_insert_string()
+        rows = yield from execute_many(sql, argsArray, database="fortest")
+        while len(self.__escape_column__):
+            self.__escape_column__.pop()
+        if rows != len(argsArray):
+            status_text ='Failed to insert record: affected rows: %s' % rows
+            logger.warn(status_text)
+        else:
+            status_text ='Insert record: affected rows: %s' % rows
+            logger.info(status_text)
+        return status_text
+
 
     @asyncio.coroutine
     def save(self):
