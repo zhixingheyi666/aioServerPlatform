@@ -1,9 +1,14 @@
 use fortest;
+
+select data from text_data_note;
+select  * from text_data_note;
+-- ------------------------------------------------------------------------------------
+
 select `data` from submission_data_note where `data` like '0cd7c%' into @data_hash;
 update submission_data_note set `data`=@data_hash where id =69;
 select * from submission_data_note order by `id` desc;
 select * from submission_data_note where `mate_format` ="exStorage" and `order` >0;
---------------------------------------------------------------------------------------
+-- ------------------------------------------------------------------------------------
 
 select data from text_data_note where data_hash like 'f6fb%';
 

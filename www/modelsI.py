@@ -151,3 +151,16 @@ class submissionDataNote(Model):
     mate_format = StringField(colType='varchar(30)')
     data = StringField(colType='varchar(1200)')
 
+class yanReports(Model):
+    # 类映射的表名
+    __table__ = 'yanxiu_reports'
+
+    # 定义类的属性到列的映射
+    id = IntegerField(primary_key=True,  colType='int(11)', auto_fill=True)
+    author = StringField(colType='varchar(10)')
+    title = StringField(colType='varchar(100)')
+    create_time = StringField(colType='varchar(20)')
+    page_num = IntegerField(colType='int(11)')
+    stamp_time = TimeStampField(colType='timestamp')
+    content = StringField(colType='varchar(3000)')
+

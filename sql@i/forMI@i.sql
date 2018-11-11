@@ -83,8 +83,8 @@
   .根据以上设计，(path,mate,mate_order,order) 应该组成一个unique key
   c.附加信息概览：
     a.mate:***              path:***                    mate_order:-1
-    这是个虚拟属性，用于从数据库逆向还原Object时的标志，在还原过程的某个步骤，
-    会将整个Object的注释等附加属性的mate_order标记为-1，然后组合成"..remark"
+    这是个虚拟属性，是从数据库逆向还原Object时的标志，在还原过程的某个步骤，
+    会将<整个Object>的注释等附加属性的mate_order标记为-1，然后组合成"..remark"
     属性，成为Object的第一层属性的兄弟属性。
     0.mate:iterPrint              path:.iterPrint                   mate_order:-2
     这是个有序迭代属性，由于还未考虑周全，所以用***表示，我设想对于
@@ -99,10 +99,10 @@
     3.mate:notObj           path:.notObj      mate_order: 0
       如果传进来的是不是对象(准确的说，不是dict)，就生成这个附加信息，并存储
       传进来的值。
-    4.为了与对象的原生信息区分，规定所有附加信息的order取正值的相反数，也就是所本来如果
+    4.为了与对象的原生信息区分，规定所有附加信息的order取正值的相反数，也就是说本来如果
       获取应当写入的order是178，那么写入时，应当写入-178。当然，mate_order=0时(此时，
       存储的是对象的原生信息，只不过，原生信息是空dict空array或者是string、bool等形式)，
-      存储的是对象的原生信息，所以order应当是正常的正值。当对象是不是空的array时，为了便于
+      存储的是对象的原生信息，所以order应当是正常的正值。当对象不是空的array时，为了便于
       还原，也生成mate_order=0的一条信息，但因为是附加信息，所以其order值应当为正常order值的
       相反数。
 */

@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/aioServerPlatform.iml" filepath="$PROJECT_DIR$/.idea/aioServerPlatform.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/bootstrap_ln.iml" filepath="$PROJECT_DIR$/.idea/bootstrap_ln.iml" />
     </modules>
   </component>

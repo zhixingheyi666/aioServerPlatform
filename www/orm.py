@@ -720,6 +720,15 @@ class Model(dict, metaclass=ModelMetaclass):
                 add_data = {}
                 mate_order_map = {}
                 if include_remark:
+                    # todo:此处并未区分<随动注释>和<弱更新>注释，而是直接将他们一起获取。当历史信息比较多的时候，造成效率低，需要改进
+                    """
+                        <随动注释>
+                            可以理解为由程序根据object特征自动生成的mate，例如iterPrint，所以每次save根据object
+                            的不同，都会有所变化。随动注释，要点在其更新性强，故也可称之为<强更新注释>
+                        <弱更新注释>
+                            可以理解为人工添加的说明，总结的特征，要点在于总结性规律性。只要object不发生功能性或者
+                            质的或者重要属性的改变，那么注释内容仍然适合描述object。
+                    """
                     sql = "select * from %s " % cls.__table__ + "where `mate_order` < 0 order by `mate_order`"
                     yield from cur.execute(sql)
                     add_pre_rows = yield from cur.fetchall()
@@ -738,23 +747,37 @@ class Model(dict, metaclass=ModelMetaclass):
                         pre_path = pre_row["path"]
                         pre_mate = pre_row["mate"]
 
-                        # pre_path用来区分注释属于对象的哪一个mate，
-                        # pre_mate用来区分同一个mate的不同条目的注释，
-                        # order用来区分同一条注释的前后更新
                         def ex_hand(pre_row):
                             if pre_row["mate_format"] == "exStorage":
                                 ex_storage.append(pre_row["data"])
-
+                        """
+                        # pre_path用来区分注释属于对象的哪一个mate，
+                        # pre_mate用来区分同一个mate的不同条目的注释，
+                        # order用来区分同一条注释的前后更新
+                        # add_data用来存储筛选结果
+                        """
+                        # 如果筛选结果中还不曾出现过某个路径，则添加这个pre_path
                         if pre_path not in add_data.keys():
                             add_data[pre_path] = {}
                             add_data[pre_path][pre_mate] = pre_row
                             ex_hand(pre_row)
+                        # 如果筛选结果中还不曾出现过某个路径下的某条注释，则添加这个pre_mate
                         elif pre_mate not in add_data[pre_path].keys():
                             add_data[pre_path][pre_mate] = pre_row
                             ex_hand(pre_row)
+                        # 如果已经筛选到指定order的<随动注释>，则不继续下面的随动注释筛选(阻断后面的elif语句)
+                        elif add_data[pre_path][pre_mate]["order"] == -order:
+                            pass
+                            """
+                            # <ttt>
                             # 因为附加信息的order存储时候取反成了负数，所以order值较小的是新的信息
                             # 将覆盖旧的信息
-                        elif add_data[pre_path][pre_mate]["order"] > pre_row["order"]:
+                            # elif add_data[pre_path][pre_mate]["order"] > pre_row["order"]:
+                            """
+                        # 这条语句中存在冗余，即使找不到恰好的目标order对应的注释，会有稍早的信息会被加入add_data
+                        # ··但是如果找不到目标order对应的注释，可能导致致命错误，例如匹配了错误的iterPrint
+                        # 配合上面语句，直至找到目标order对应的注释，就会停止筛选
+                        elif order >= -pre_row["order"]:
                             add_data[pre_path][pre_mate] = pre_row
                             ex_hand(pre_row)
                         """

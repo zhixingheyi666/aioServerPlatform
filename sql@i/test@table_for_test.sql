@@ -1,4 +1,21 @@
 use fortest;
+
+#-------------------------20181110------------------------------------------------------------------
+select * from table_for_test order by id;
+# 目前,所有order小于0的mate的mate_order都等于-2 (时间点：20181110)
+select distinct `mate_order` from table_for_test  where `order` < 0 ;
+# 目前,order小于0的mate只有iterPrint (时间点：20181110)
+select distinct `mate` from table_for_test  where `order` < 0 ;
+# 目前,order小于0的mate只有iterPrint (时间点：20181110)
+select distinct `mate` from table_for_test  where `mate_order` < 0 ;
+
+select * from table_for_test  where `mate_order` < 0 ;
+select * from table_for_test  where `mate_order` = 0 ;
+
+select * from table_for_test  where abs(`order`) >1525 and  abs(`order`) < 1800;
+#-------------------------20181110------------------------------------------------------------------
+
+
 select * from table_for_test where `order` >2021;
 select * from table_for_test where `order` >2021 and `mate`="author";
 select count(*) from table_for_test where `order` >2021 and `mate`="title";
@@ -17,7 +34,7 @@ select * from table_for_test order by `id` desc;
 select `mate_order` from table_for_test where `order` = 260 and `path` = ".subscriptionInfo.serviceLevelsEligibleForPurchase";
 
 
-select * from table_for_test;
+select * from table_foryanxiu_reports_test;
 select mate_hash from table_for_test where mate_order= 10 and `order` = 1 into @gethash ;
 select * from table_for_test where mate_hash = @gethash;
 select @gethash;

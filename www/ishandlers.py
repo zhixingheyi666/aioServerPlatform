@@ -14,6 +14,8 @@ from apis import Page, APIError, APIPermissionError, APIValueError, APIResourceN
 from modelsI import getClipActionNote, getNotebooksNote, getAccountsDataNote, getSmartFilingInfoNote, getFilingInfoNote, \
 setSelectedAccountNote, getTagsNote, submissionDataNote, tableForTest
 
+from modelsI import yanReports
+
 from models import User, Comment, Blog, next_id\
     , UsersNote, UserUrlsNote, DataNote, TableRegisterNote
 from config import configs
@@ -58,8 +60,65 @@ def printObj(obj, logText):
         logger.info(e)
 
 
+@post('/MI/exercise/save_many_reports')
+def save_many_reports(request, *, name, action, obj={}):
+    if name == "UNKNOWN":
+        text = "save_many_reports: Please give the obj name..."
+        printObj(obj, text)
+        rs = "-----|| This is save_many_reports||-----------------------------"
+    elif name == "yan_reports":
+        if action == "save":
+            if isinstance(obj,list) and len(obj) > 1:
+                try:
+                    args_array=[]
+                    for arg_data in obj:
+                        if "author" not in arg_data.keys():
+                            raise APIValueError
+                        elif "title" not in arg_data.keys():
+                            raise APIValueError
+                        elif "time_string" not in arg_data.keys():
+                            raise APIValueError
+                        elif "time_stamp" not in arg_data.keys():
+                            raise APIValueError
+                        elif "page_num" not in arg_data.keys():
+                            raise APIValueError
+                        else:
+                            arg_arg = []
+                            arg_arg.append(arg_data["author"])
+                            if "content" not in arg_data.keys():
+                                arg_arg.append("")
+                            else:
+                                arg_arg.append(arg_data["content"])
+                            arg_arg.append(arg_data["time_string"])
+                            arg_arg.append(int(arg_data["page_num"]))
+                            arg_arg.append(arg_data["time_string"])
+                            # arg_arg.append(arg_data["time_stamp"])
+                            arg_arg.append(arg_data["title"])
+                            args_array.append(arg_arg)
+                    yan_r = yanReports(author=args_array[0][0], title=args_array[0][5], create_time=args_array[0][2], page_num=args_array[0][3], stamp_time=args_array[0][4], content=args_array[0][1] )
+                    text = yield from yan_r.save_many(args_array)
+                    rs = "-----|| This is save_many_reports||-----------------------------" + text
+                except Exception as e:
+                    text = "save_many_reports Failed: %s" % str(e)
+                    printObj(obj, text)
+                    rs = "-----|| This is save_many_reports||-----------------------------" + text
+            else:
+                text = "save_many_reports Failed: Obj should be Array type and at least one element"
+                printObj(obj, text)
+                rs = "-----|| This is save_many_reports||-----------------------------" + text
+        else:
+            text = "save_many_reports Failed: prama action should be 'save'"
+            printObj(obj, text)
+            rs = "-----|| This is save_many_reports||-----------------------------" + text
+    else:
+        text = "save_many_reports Failed: No Model for obj --> %s" % name
+        printObj(obj, text)
+        rs = "-----|| This is save_many_reports||-----------------------------" + text
+    return rs
+
+
 @post('/MI/trackEvent/objHandler')
-def miHandJsonObj(request, *, name, action, obj={}):
+def miHandJsonObj(request, *, name, instructions, obj={}):
     """
     #这个代码方案测试成功
     haveModels = {"account": User_note}
@@ -83,14 +142,18 @@ def miHandJsonObj(request, *, name, action, obj={}):
     if name == "UNKNOWN":
         text = "SaveObj Failed: Please give the obj name..."
         printObj(obj, text)
-        rs = "-----|| This is miHandJsonObj ||-----------------------------"
+        rs = {'getResourceError': True, 'errorMessage': "-----||{}||-----------------------------".format(text)}
     elif name in haveModels.keys():
-        if action == "save":
+        if instructions['action'] == "save":
             model = haveModels[name]
             rs = yield from model.saveObj(obj)
-        elif action == "get":
+        elif instructions['action'] == "get":
             model = haveModels[name]
-            rs = yield from model.get_object()
+            rs = yield from model.get_object(order=instructions['order'])
+        else:
+            text = "HandObj Failed: Unknown action --> %s" % instructions['action']
+            printObj(obj, text)
+            rs = {'getResourceError': True, 'errorMessage': "-----||{}||-----------------------------".format(text)}
         """
         # objInstance = haveModels[name](**kw)
         # 为临时测试代码
@@ -98,7 +161,6 @@ def miHandJsonObj(request, *, name, action, obj={}):
                                 mate_hash=hashlib.sha1("account.word".encode("utf-8")).digest(), mate_order=10,
                                 order=12, mate_format="String", data="None")
         """
-        # rs = yield from UsersNote.saveObj(obj)
         """
         for row in rs:
             objInstance = UsersNote(path=row[0], mate=row[2],
@@ -109,7 +171,7 @@ def miHandJsonObj(request, *, name, action, obj={}):
     else:
         text = "HandObj Failed: No Model for obj --> %s" % name
         printObj(obj, text)
-        rs = "-----|| This is miHandJsonObj ||-----------------------------"
+        rs = {'getResourceError': True, 'errorMessage': "-----||{}||-----------------------------".format(text)}
     return rs
 
 

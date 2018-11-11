@@ -140,19 +140,22 @@ def response_factory(app, handler):
             resp.content_type = 'text/html;charset=utf-8'
             return resp
         if isinstance(rr, dict):
-            template = rr.get('__template__')
-            if template is None:
-                resp = web.Response(
-                    body=json.dumps(rr, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
-                resp.content_type = 'application/json;charset=utf-8'
-                return resp
+            if rr.get('getResourceError'):
+                return web.Response(status=404, reason=rr.get('errorMessage'))
             else:
-                rr['__user__'] = request.__user__
-                # self#测试用添加代码
-                # rr['__user__'] = 'Mytest'
-                resp = web.Response(body=app['__templating__'].get_template(template).render(**rr).encode('utf-8'))
-                resp.content_type = 'text/html;charset=utf-8'
-                return resp
+                template = rr.get('__template__')
+                if template is None:
+                    resp = web.Response(
+                        body=json.dumps(rr, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
+                    resp.content_type = 'application/json;charset=utf-8'
+                    return resp
+                else:
+                    rr['__user__'] = request.__user__
+                    # self#测试用添加代码
+                    # rr['__user__'] = 'Mytest'
+                    resp = web.Response(body=app['__templating__'].get_template(template).render(**rr).encode('utf-8'))
+                    resp.content_type = 'text/html;charset=utf-8'
+                    return resp
         # if isinstance(r, int) and t >= 100 and t < 600:
         #    return web.Response(t)
         if isinstance(rr, tuple) and len(rr) == 2:
