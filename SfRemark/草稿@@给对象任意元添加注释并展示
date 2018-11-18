@@ -6,7 +6,44 @@
     --给mate添加的注释的条目数不应受限制
     --已经添加的注释应当可以修改和保存，这需要专门的<保存api>
     --数据库要制定相应的规则，配合注释的读取和保存
-    -----------------------
+    ==========================================20181117======================================================
+    <规则冲突>(仅仅提出解决方案，还未编码实现)
+        1.<弱更新注释>的order目前规则是采用固定值，这将占用一部分order字段，
+            可能与其他mate的order或者<随动注释>的order产生冲突。
+            <冲突解决>
+                a.首先，order值源于上次存储时候最后一行mate的id(最高id)，所以order是不断递增的。
+                b.所以设想，对于某个新表，初始化时，空出前10000个id，所有mate的id都从10001
+                    开始，那么mate的order的值也会从10001开始。
+                c.采用上面<b>的方法，相当于预留了10000个order值给<弱更新注释>，目前应该足够了
+    ==========================================20181117======================================================
+
+    ------<程序实现的事实标准>---------------
+    -------20181118--------------
+        1.Array对象带注释最终返回是array，并且整个对象的注释占据数组的首位(0号元素)
+        2.Array对象的一条mate的mate值是arrayObject，mate_order是0，order是对象order的
+            相反数，path是.arrayObject，mate_format是Array，data是数组的长度。
+            其存储结构如下
+            # id, path, mate, mate_hash, mate_order, order, update_time, mate_format, data
+            2232, .0, 0, ..., 1, 2232, 2018-11-18 11:44:33, Number, 4
+            2233, .1, 1, ..., 2, 2232, 2018-11-18 11:44:33, Number, 5
+            2234, .2, 2, ..., 3, 2232, 2018-11-18 11:44:33, Number, 6
+            2235, .3, 3, ..., 4, 2232, 2018-11-18 11:44:33, Number, 7
+            2236, .4, 4, ..., 5, 2232, 2018-11-18 11:44:33, Number, 8
+            2237, .arrayObject, arrayObject, ..., 0, -2232, 2018-11-18 11:44:33, Array, 5
+            2238, .iterPrint, iterPrint, ..., -2, -2232, 2018-11-18 11:44:33, String, {.....}
+        3.空的Object和空的Array对象，其存储结构如下
+                # id, path, mate, mate_hash, mate_order, order, update_time, mate_format, data
+                1839, .emptyObj, emptyObj, ..., 0, 1839, 2018-08-23 17:46:40, Array, 0
+            其path是.emptyObj，其mate是emptyObj，mate_format分别是Object和Array,data是0
+        4.String、Number、Bool，其存储结构如下
+                # id, path, mate, mate_hash, mate_order, order, update_time, mate_format, data
+            1843, table_for_test.notObj, notObj, ..., 0, 1843, 2018-08-23 17:47:41, String, eeeeeeeeeeee
+            1844, .iterPrint, iterPrint, ..., -2, -1843, 2018-08-23 17:47:41, String, {}
+            1845, table_for_test.notObj, notObj, ..., 0, 1845, 2018-08-23 17:48:12, Number, 3.14
+            1846, .iterPrint, iterPrint, ..., -2, -1845, 2018-08-23 17:48:12, String, {}
+        其path是 表名.notObj，其mate是notObj，其mate_order是0，order值是正值，mate_format分别是对应的类型
+    -------20181118--------------
+    ------<程序实现的事实标准>---------------
     --·<标准>
         在重构对象的时候，可以根据传入的参数，仅仅重构对象的某一部分？
             或者虽然重构所有部分，但仅仅显示某一部分
@@ -26,12 +63,26 @@
         同级注释不得重名
         应在输入或者构造时，避免与对象之前的同级注释的key重名,如果重名，则后者应当覆盖掉前者。
         这个目前非自动检测，需要由操作者自行检查注意。
+    --·<标准>
+         <整个Object的注释的mate_order大于-10000>
+         <注释的mate_order小于0>
+         <注释的mate_order是负数，应当从-10000开始，逐条递减(整个对象所有注释是一起计数的)
+         <随动注释的order为相应order的相反数>
+         <弱更新注释的order暂时拟定为常数>
+    --·<标准>
+        <随动注释>
+           可以理解为由程序根据object特征自动生成的mate，例如iterPrint，所以每次save根据object
+           的不同，都会有所变化。随动注释，要点在其更新性强，故也可称之为<强更新注释>
+        <弱更新注释>
+           可以理解为人工添加的说明，总结的特征，要点在于总结性规律性。只要object不发生功能性或者
+           质的或者重要属性的改变，那么注释内容仍然适合描述object。
+
+
 
 
     ---------------------
-    --mate注释的path和mate完全相同，mate注释和mate区别在于mate_order，注释的mate_order
-        是负数，应当从-10000开始，逐条递减(整个对象所有注释是一起计数的)，注释的order可以
-        设定为常数-100，或者和注释一起展示的mate的order？
+    --mate注释的path和mate完全相同，mate注释和mate区别在于mate_order，《注释的mate_order
+        是负数》，应当从-10000开始，逐条递减(整个对象所有注释是一起计数的)
         ·如果注释是弱更新的，或者需要持久的，其order可以尝试设定为常数
         ·如果注释是每次根据Obj特性现场生成的(例如iterPrint特性)，那么其order不应该设定为常数，
             应当设定为正常mate的order的相反数，这样可以随每次Object更新而更新，

@@ -1,17 +1,44 @@
 use fortest;
 
-#-------------------------20181110------------------------------------------------------------------
-select * from table_for_test order by id;
-# 目前,所有order小于0的mate的mate_order都等于-2 (时间点：20181110)
-select distinct `mate_order` from table_for_test  where `order` < 0 ;
-# 目前,order小于0的mate只有iterPrint (时间点：20181110)
-select distinct `mate` from table_for_test  where `order` < 0 ;
-# 目前,order小于0的mate只有iterPrint (时间点：20181110)
-select distinct `mate` from table_for_test  where `mate_order` < 0 ;
+#-------------------------20181117------------------------------------------------------------------
+# 备份测试表table_for_test
+-- --create table table_for_test_bk002 select * from table_for_test;
 
+select * from table_for_test;
+-- 查找某个范围内的数据集，统计相同order的次数(属于同一个object)
+select count(`order`) oo, `order` from table_for_test where `order` < 1300 group by `order` order by oo desc;
+-- 删除测试过程中产生的废数据集
+-- --delete  from table_for_test  where  id >1896 and id <2216;
+-- --delete  from table_for_test  where   id >2222;
+-- --delete  from table_for_test  where   abs(`order`)=1714;
+-- --delete  from table_for_test  where   id <1500 and mate_order=-2;
+-- --delete  from table_for_test  where  `order` in (137,260,385,508,631,754,1249,1001,877,1125,1374);
+#-------------------------20181117------------------------------------------------------------------
+#-------------------------20181115------------------------------------------------------------------
+# 检索mate_order小于等于0(注释或者<例外情况(例如非Object)>)的数据
+select * from table_for_test  where mate_order 
+	in (select distinct `mate_order` from table_for_test  where `mate_order` <= 0) order by `mate_order`;
+# 前一次调试涉及的数据的范围
+select * from table_for_test  where abs(`order`) >1525 and  abs(`order`) < 1800 order by id;
+
+select * from table_for_test  where abs(`order`) < 1536 order by id;
+
+select * from table_for_test  where `mate_order` < 0 order by `mate_order`;
+
+select * from table_for_test  where abs(`order`) >1535 and  abs(`order`) < 1541 order by id;
+-- --delete  from table_for_test  where  id >1527 and id <1536;
+-- --delete  from table_for_test  where  `order` in (137,260,385,508,631,754,1249,1001,877,1125,1374);
+select count(`order`) oo, `order` from table_for_test where `order` < 1300 group by `order` order by oo desc;
+
+
+
+# 备份测试表table_for_test
+-- --create table table_for_test_bk001 select * from table_for_test;
+#-------------------------20181115------------------------------------------------------------------
+#-------------------------20181110------------------------------------------------------------------
+select * from table_for_test order by id desc;
 select * from table_for_test  where `mate_order` < 0 ;
 select * from table_for_test  where `mate_order` = 0 ;
-
 select * from table_for_test  where abs(`order`) >1525 and  abs(`order`) < 1800;
 #-------------------------20181110------------------------------------------------------------------
 

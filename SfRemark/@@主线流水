@@ -22,6 +22,116 @@
   ·比较容易实现的是判断两个对象的包含关系，例如一个对象A的所有键以及键的路径都包含在另外一个对象B中
     常见的情况是A是早先的对象，由于需要，增添了某些属性，就成了B对象了
 ············
+---------------------------20181115----------------------------------------------
+todo:发现前面仅编写了<注释读出>的规则和相关代码，并未编写注释写入的代码
+todo: <规则冲突>(仅仅提出解决方案，还未编码实现)
+        1.<弱更新注释>的order目前规则是采用固定值，这将占用一部分order字段，
+            可能与其他mate的order或者<随动注释>的order产生冲突。
+            <冲突解决>
+                a.首先，order值源于上次存储时候最后一行mate的id(最高id)，所以order是不断递增的。
+                b.所以设想，对于某个新表，初始化时，空出前10000个id，所有mate的id都从10001
+                    开始，那么mate的order的值也会从10001开始。
+                c.采用上面<b>的方法，相当于预留了10000个order值给<弱更新注释>，目前应该足够了
+<例外情况处理>
+    1.空javascript对象，包括空的Array[]和空的Dict{}
+    2.非对象，包括String、Number、Bool
+    3.javascript Array对象，[...]
+<测试用例>
+    (a) table_for_test_bk001 中存储了一开始测试的条目(分析的是|order|值在1525到1800的部分)，
+        其中测试注释部分的数据如下(mate_order < 0)，相关sql代码在test@table_for_test.sql日期在2018年11月中旬
+      备注，非数据           # id,	path,												 mate,					mate_hash,		mate_order,	order,	update_time,		        mate_format,	data
+    (某个mate的注释)         2021,	.subscriptionInfo.currentSku,						 TestBoolRemark@ix,		...,			-10003,		-100,	2018-08-24 21:28:21,		 Bool,			False
+    (同一mate下的两条注释)   383,	.subscriptionInfo.serviceLevelsEligibleForPurchase,	 TestBoolRemark,		...,			-10002,		-100,	2018-08-18 19:38:48,		 Bool,			True
+    (同一mate下的两条注释)   123,	.subscriptionInfo.serviceLevelsEligibleForPurchase,	 ArrayRemark_001,		...,			-10001,		-100,	2018-08-18 19:38:48,		 String,		测试下给mate添加注释能否成功
+    (整个Object的注释)       384,	.remark,											 test_exStorage,		...,			-202,		-13,	2018-08-18 20:05:24,		 exStorage,		be6a5f58e487831ea766a633cb9bd597734a689f9940bd8828f1f054ca3d1c0d
+    (整个Object的注释)       382,	.remark,											 remark,				...,			-201,		-10,	2018-08-18 19:38:48,		 String,		测试下给Obj添加注释能否成功
+    (整个Object的注释)       507,	.iterPrint,											 iterPrint,				...,			-2,			-385,	2018-08-19 11:58:24,		 String,		{
+    (测试时候，产生的废数据) 2020,	.'.subscriptionInfo.currentSku',					 TestBoolRemark@ix,		...,			-10002,		-100,	2018-08-24 21:26:38,		 Bool,			True
+
+        程序的逻辑是：
+            mate_order > -10000的是全局注释(整个对象的注释)，现在看来其path用的是'.remark'，
+                但path的值并暂时并不决定输出的形式，输出时不管path为何值，总是将全局注释放到附加的全局的'..remark'对象下面
+            mate_order<-10000的是具体的某个mate的注释，需要根据path添加的相对应的mate
+    类型   Number
+    3.14
+
+    类型   String
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+    类型   String(超长，需要exStorage)
+    'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww'
+    get_object返回值
+    {…}
+        "..Object": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+        "..remark": Object { iterPrint: "{}", test_exStorage: "<div style=\"font-size: 16px; display: inline-block;\"><div><div style=\"font-size:12px;background:rgb(255, 255, 255) none repeat scroll 0% 0%;font-family:Simsun;\">\n<div style=\"border-width:0px;padding:0px;list-style:outside none none;margin:auto;width:978px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/list_shades.png&amp;quot;) repeat-x scroll 0px 0px;border-left:1px solid rgb(219, 219, 219);border-right:1px solid rgb(219, 219, 219);\">\n\t<dl style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;padding-left:8px;width:950px;\">\n\t\t<dd style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;width:80px;\"><a href=\"https://www.2cto.com/\" style=\"color:rgb(31, 58, 135);text-decoration:none;display:block;width:79px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/cate_logos.png&amp;quot;) no-repeat scroll -1137px 0px;\"></…", remark: "测试下给Obj添加注释能否成功" }
+        <prototype>: Object { … }
+
+    类型  空Array对象[]
+
+    类型  空对象{}
+    get_object返回值
+    {…}
+        "..remark": Object { iterPrint: "{}", test_exStorage: "<div style=\"font-size: 16px; display: inline-block;\"><div><div style=\"font-size:12px;background:rgb(255, 255, 255) none repeat scroll 0% 0%;font-family:Simsun;\">\n<div style=\"border-width:0px;padding:0px;list-style:outside none none;margin:auto;width:978px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/list_shades.png&amp;quot;) repeat-x scroll 0px 0px;border-left:1px solid rgb(219, 219, 219);border-right:1px solid rgb(219, 219, 219);\">\n\t<dl style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;padding-left:8px;width:950px;\">\n\t\t<dd style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;width:80px;\"><a href=\"https://www.2cto.com/\" style=\"color:rgb(31, 58, 135);text-decoration:none;display:block;width:79px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/cate_logos.png&amp;quot;) no-repeat scroll -1137px 0px;\"></…", remark: "测试下给Obj添加注释能否成功" }
+
+    类型  对象{0:1,1:2,2:3}
+    get_object返回值
+    {…}
+        0: 1
+        1: 2
+        2: 3
+        "..remark": Object { iterPrint: "{}", test_exStorage: "<div style=\"font-size: 16px; display: inline-block;\"><div><div style=\"font-size:12px;background:rgb(255, 255, 255) none repeat scroll 0% 0%;font-family:Simsun;\">\n<div style=\"border-width:0px;padding:0px;list-style:outside none none;margin:auto;width:978px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/list_shades.png&amp;quot;) repeat-x scroll 0px 0px;border-left:1px solid rgb(219, 219, 219);border-right:1px solid rgb(219, 219, 219);\">\n\t<dl style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;padding-left:8px;width:950px;\">\n\t\t<dd style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;width:80px;\"><a href=\"https://www.2cto.com/\" style=\"color:rgb(31, 58, 135);text-decoration:none;display:block;width:79px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/cate_logos.png&amp;quot;) no-repeat scroll -1137px 0px;\"></…", remark: "测试下给Obj添加注释能否成功" }
+
+    类型  对象[1,2,3]
+    <··注意，Array存储的时候有mate_order为0的arrayObject的行，这个是用来存储Array的标记吧？>
+    存储结构
+        # id, path, mate, mate_hash, mate_order, order, update_time, mate_format, data
+        1679, .0, 0, ..., 1, 1679, 2018-08-23 16:17:45, Number, 1
+        1680, .1, 1, ..., 2, 1679, 2018-08-23 16:17:45, Number, 2
+        1681, .2, 2, ..., 3, 1679, 2018-08-23 16:17:45, Number, 3
+        1682, .arrayObject, arrayObject, ..., 0, -1679, 2018-08-23 16:17:45, Array, 3
+        1683, .iterPrint, iterPrint, ..., -2, -1679, 2018-08-23 16:17:45, String, {...}
+
+    <··注意，返回Array的首位(0号元素)被注释对象给占用了>
+    get_object返回值
+    (4) […]
+            0: {…}
+            "..remark": Object { iterPrint: "{...}", test_exStorage: "<div style=\"font-size: 16px; display: inline-block;\"><div><div style=\"font-size:12px;background:rgb(255, 255, 255) none repeat scroll 0% 0%;font-family:Simsun;\">\n<div style=\"border-width:0px;padding:0px;list-style:outside none none;margin:auto;width:978px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/list_shades.png&amp;quot;) repeat-x scroll 0px 0px;border-left:1px solid rgb(219, 219, 219);border-right:1px solid rgb(219, 219, 219);\">\n\t<dl style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;padding-left:8px;width:950px;\">\n\t\t<dd style=\"border-width:0px;padding:0px;margin:0px;list-style:outside none none;height:32px;float:left;width:80px;\"><a href=\"https://www.2cto.com/\" style=\"color:rgb(31, 58, 135);text-decoration:none;display:block;width:79px;height:32px;background:rgba(0, 0, 0, 0) url(&amp;quot;https://statics.2cto.com/css/../images/cate_logos.png&amp;quot;) no-repeat scroll -1137px 0px;\"></…", remark: "测试下给Obj添加注释能否成功" }
+            <prototype>: Object { … }
+            1: 1
+            2: 2
+            3: 3
+            length: 4
+
+    类型  对象{1:[1,2,3]}
+
+    类型  对象{aa:[0,1,2,{mate:false},{mm:[2,3,4]}],name:'testArray'}
+    Analytics.getObj("tableForTest",'get',1499)
+    <此处测试了对象套数组，然后数组套对象，然后对象再次套数组的数据结构的读写>
+    <存储结构>
+        # id,		 path,		 mate,	 mate_hash,		 mate_order,	order,		 update_time,		 mate_format,		 data
+        1499,		 .aa..0,		0,		 ...,		 1,		 	 	 1499,		 2018-08-22 17:12:39,		 Number,		 0
+        1500,		 .aa..1,		1,		 ...,		 2,		 	 	 1499,		 2018-08-22 17:12:39,		 Number,		 1
+        1501,		 .aa..2,		2,		 ...,		 3,		 	 	 1499,		 2018-08-22 17:12:39,		 Number,		 2
+        1502,		 .aa..3.mate,	mate,	 ...,		 4,		 	 	 1499,		 2018-08-22 17:12:39,		 Bool,		 false
+        1503,		 .aa..3,		3,		 ...,		 5,		 	 	 1499,		 2018-08-22 17:12:39,		 Object,		 1
+        1504,		 .aa..4.mm..0,	0,		 ...,		 6,		 	 	 1499,		 2018-08-22 17:12:39,		 Number,		 2
+        1505,		 .aa..4.mm..1,	1,		 ...,		 7,		 	 	 1499,		 2018-08-22 17:12:39,		 Number,		 3
+        1506,		 .aa..4.mm..2,	2,		 ...,		 8,		 	 	 1499,		 2018-08-22 17:12:39,		 Number,		 4
+        1507,		 .aa..4.mm,		mm,		 ...,		 9,		 	 	 1499,		 2018-08-22 17:12:39,		 Array,		 3
+        1508,		 .aa..4,		4,		 ...,		 10,	 		 1499,		 2018-08-22 17:12:39,		 Object,		 1
+        1509,		 .aa,		    aa,		 ...,		 11,	 		 1499,		 2018-08-22 17:12:39,		 Array,		 5
+        1510,		 .name,		    name,	 ...,		 12,	 		 1499,		 2018-08-22 17:12:39,		 String,		 testArray
+        1511,		 .iterPrint,	iterPrint,...,		 -2,	 		 -1499,		 2018-08-22 17:12:39,		 String,		 {{...{.}.{{...}.}.}..}
+
+
+    类型  对象{aa:[[ "algobra", "leanear", "theta" ],1,2,{mate:false},{mm:[2,3,4]}],name:'testArray'}
+    Analytics.getObj("tableForTest",'get',1499)
+    <此处测试了对象套数组，然后数组套对象，然后对象再次套数组的数据结构的读写>
+
+    类型  对象[1,'r',[4,5,6]]
+
+    类型  对象{author: "范存娟",time_stamp: 1534236540000,time_string: "2018-08-14 16:49",title: "《平行四边形的面积》观课报告"}
+---------------------------20181115----------------------------------------------
 ---------------------------20181111----------------------------------------------
 """
     <随动注释>
@@ -33,8 +143,8 @@
 """
 ---------------------------20181111----------------------------------------------
 ---------------------------20181109----------------------------------------------
-todo:重新复习对象写入数据库时的解析规则，读出数据库的解析规则，建立详细的说明文档
-todo:重新复习给对象添加注释的规则，以及注释读出规则和相关代码，建立详细的说明文档
+重新复习对象写入数据库时的解析规则，读出数据库的解析规则，建立详细的说明文档
+重新复习给对象添加注释的规则，以及注释读出规则和相关代码，建立详细的说明文档
 ---------------------------20181109----------------------------------------------
 ---------------------------20180831----------------------------------------------
 ·为一个小测试程序编写了配套的Model，同时为了便于一次写入多行数据，在orm中编写了saveMany

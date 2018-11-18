@@ -722,6 +722,7 @@ class Model(dict, metaclass=ModelMetaclass):
                 if include_remark:
                     # todo:此处并未区分<随动注释>和<弱更新>注释，而是直接将他们一起获取。当历史信息比较多的时候，造成效率低，需要改进
                     """
+                        <注释的mate_order小于0>
                         <随动注释>
                             可以理解为由程序根据object特征自动生成的mate，例如iterPrint，所以每次save根据object
                             的不同，都会有所变化。随动注释，要点在其更新性强，故也可称之为<强更新注释>
@@ -736,12 +737,16 @@ class Model(dict, metaclass=ModelMetaclass):
                     iter_print = {}
                     """
                          # 附加信息如果有相同的mate_order,我们视为同一条附加信息，
-                         # 同一条附加信息也应当由相同的mate
+                         # 同一条附加信息也应当有相同的mate
                     """
                     for pre_row in add_pre_rows:
                         if pre_row["mate_order"] > -10000:
-                            # 如果正常执行saveObj写入程序，得到的path一定是字符串，这里将其设为数字-1，后面
-                            # 就很容易与其他mate注释的path区分开，path值是一个整数-1的，就是整个Object的注释
+                            """
+                            <整个Object的注释的mate_order大于-10000>
+                            <整个Object的注释，其path值是一个整数-1，其他mate注释的path是字符串>
+                                如果正常执行saveObj写入程序，得到mate的path一定是字符串，
+                                这里将其整个Object的注释的path值设为数字-1，与mate的注释区分开
+                            """
                             pre_row["path"] = -1
                             pre_row["mate_order"] = -1
                         pre_path = pre_row["path"]
